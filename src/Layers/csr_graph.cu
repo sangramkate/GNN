@@ -98,7 +98,7 @@ unsigned CSRGraphTex::allocOnDevice(bool no_edge_data) {
 CSRGraph::CSRGraph() { this->row_start= NULL; init(); }
 
 
-unsigned CSRGraph::readFromGR(char file[], char binFile[], int* d_row_start, int* d_edge_dst, int* d_row_start_test, int* d_edge_dst_test, float* d_B, int FV_size ) {
+unsigned CSRGraph::readFromGR(char file[], char binFile[], int* d_row_start, int* d_edge_dst, float* d_B, int FV_size ) {
   std::ifstream cfile;
   cfile.open(file);
 
@@ -146,7 +146,7 @@ unsigned CSRGraph::readFromGR(char file[], char binFile[], int* d_row_start, int
   allocOnHost(true);
 
   row_start[0] = 0;
-//  printf("ROW\n");
+
   for (unsigned ii = 0; ii < nnodes; ++ii) {
     row_start[ii + 1] = le64toh(outIdx[ii]);
     index_type degree = row_start[ii + 1] - row_start[ii];
@@ -160,13 +160,10 @@ unsigned CSRGraph::readFromGR(char file[], char binFile[], int* d_row_start, int
                edgeindex);
 
       edge_dst[edgeindex] = dst;
-//	std::cout << edge_dst[edgeindex] << "\n";
 
     }
   }
 
-  //for (unsigned ii = 0; ii < nnodes; ++ii) 
-//	std::cout << row_start[ii] << "\n";
 
 int m = nnodes;
 int n = FV_size;
@@ -190,11 +187,8 @@ if(alloc != cudaSuccess) {
 int* h_row_start ;
 int* h_edge_dst ;
 h_row_start = (int*)malloc((nnodes+1) * sizeof(int));
-//for(int i=0;i<2708;i++)
-//    printf("%d\n",h_edge_dst[i]);
 h_edge_dst = (int*)malloc((nedges+2708) * sizeof(int));
 h_edge_dst[0] = 0;
-//for(int i=0;i<(nnodes+1);i++) {
 for(int i=0;i<(nnodes+1);i++) {
     h_row_start[i] = int(row_start[i]) + i;
 }
@@ -207,13 +201,13 @@ for(int j=0;j<(deg+1);j++) {
     //printf("edge_dst[i+j] is %d\n",edge_dst[i+j]);
     if((edge_dst[int(row_start[i])+j] > i) && !flag) {
         h_edge_dst[i+int(row_start[i])+j] = i;
-    //      printf("h_edge_dst is %d in i index is %d\n",h_edge_dst[i+j+int(row_start[i])], (i+j+int(row_start[i])));
+//          printf("h_edge_dst is %d in i index is %d\n",h_edge_dst[i+j+int(row_start[i])], (i+j+int(row_start[i])));
         flag = 1;
     }
     else {
         if(flag == 0) {
             h_edge_dst[i+int(row_start[i])+j] = edge_dst[int(row_start[i]) + j];
-  //        printf("h_edge_dst is %d index is %d\n",h_edge_dst[i+j+int(row_start[i])], (i+j+int(row_start[i])));
+//          printf("h_edge_dst is %d index is %d\n",h_edge_dst[i+j+int(row_start[i])], (i+j+int(row_start[i])));
         } else {
             h_edge_dst[i+int(row_start[i])+j] = edge_dst[int(row_start[i]) + j - 1];
 //          printf("h_edge_dst is %d index is %d\n",h_edge_dst[i+j+int(row_start[i])], (i+j+int(row_start[i])));
@@ -223,31 +217,11 @@ for(int j=0;j<(deg+1);j++) {
 }
 }
 
-//printf("ROW\n");
-//for(int i=0;i<2708;i++)
-//    printf("%d\n",h_row_start[i]);
-//printf("\nCOL\n");
-//printf("col\n");
-//for(int i=0;i<6000;i++)
-//printf("col %d\n",h_edge_dst[i]);
-//printf("\n");
-//printf("col %d\n",h_edge_dst[4133]);
-//printf("col %d\n",h_edge_dst[4134]);
-alloc = cudaMemcpy(d_row_start, h_row_start,((1001) * sizeof(int)), cudaMemcpyHostToDevice);
+alloc = cudaMemcpy(d_row_start, h_row_start,((nnodes+1) * sizeof(int)), cudaMemcpyHostToDevice);
 if(alloc != cudaSuccess) {
     printf("row info memcpy failed \n");
 }
-for(int i=1001;i<(nnodes+1);i++)
-    h_row_start[i] -= h_row_start[1001];
-alloc = cudaMemcpy(d_row_start_test, &h_row_start[1001],((1708) * sizeof(int)), cudaMemcpyHostToDevice);
-if(alloc != cudaSuccess) {
-    printf("row info memcpy failed \n");
-}
-alloc = cudaMemcpy(d_edge_dst, h_edge_dst,((4132) * sizeof(int)), cudaMemcpyHostToDevice);
-if(alloc != cudaSuccess) {
-    printf("col info memcpy failed \n");
-}
-alloc = cudaMemcpy(d_edge_dst_test, &h_edge_dst[4133],((nnodes+nedges-4132) * sizeof(int)), cudaMemcpyHostToDevice);
+alloc = cudaMemcpy(d_edge_dst, h_edge_dst,((nedges+nnodes) * sizeof(int)), cudaMemcpyHostToDevice);
 if(alloc != cudaSuccess) {
     printf("col info memcpy failed \n");
 }
@@ -302,7 +276,7 @@ if(result != CUSPARSE_STATUS_SUCCESS) {
   return;
 }
 
-unsigned CSRGraph::read(char file[]) {
+unsigned CSRGraph::read(char file[], int* num_nodes, int* num_edges) {
   std::ifstream cfile;
   cfile.open(file);
 
@@ -343,6 +317,8 @@ unsigned CSRGraph::read(char file[]) {
     fptr32 += 1;
   int num_node = numNodes;
   int num_edge = numEdges;
+  num_nodes = &num_node;
+  num_edges = &num_edge;
   cfile.close();
   return 0;
 }

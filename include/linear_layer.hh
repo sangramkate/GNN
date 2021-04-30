@@ -32,5 +32,5 @@ public:
     
     Matrix getWeightsMatrix() const;
     Matrix getBiasVector() const;
-    void setData(int* row, int* col);    
+    
 };

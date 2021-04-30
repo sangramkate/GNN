@@ -17,7 +17,7 @@ void Matrix::allocateCuda(Shape shape){
         NNException::throwIfDeviceErrorOccurred("Cannot allocate CUDA memory for tensor.");
         //data_device = std::shared_ptr<float>(device_memory,[&](float* ptr){cudaFree(ptr);});
         device_allocated = true;
-//        std::cout << "Memory allocated ptr:" << data_device << "\n";
+       // std::cout << "Memory allocated ptr:" << data_device << "\n";
 }
 void Matrix::allocateCudaMemory(){
     if (!device_allocated){
@@ -26,7 +26,7 @@ void Matrix::allocateCudaMemory(){
         NNException::throwIfDeviceErrorOccurred("Cannot allocate CUDA memory for tensor.");
         //data_device = std::shared_ptr<float>(device_memory,[&](float* ptr){cudaFree(ptr);});
         device_allocated = true;
- //       std::cout << "Memory allocated ptr:" << data_device << "\n";
+       // std::cout << "Memory allocated ptr:" << data_device << "\n";
     }
 }
 
@@ -86,7 +86,7 @@ void Matrix::freeMem(){
    if(device_allocated ){
        cudaError_t errorCode = cudaFree(data_device);
      //  std::cout << "Free Error:" << errorCode << "\n";
-       //std::cout << "Free pointer:" << data_device << "\n";
+     //  std::cout << "Free pointer:" << data_device << "\n";
        NNException::throwIfDeviceErrorOccurred("Can not delete CUDA memory");
        device_allocated = false;
      }

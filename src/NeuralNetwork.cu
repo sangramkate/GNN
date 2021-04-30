@@ -20,7 +20,6 @@ Matrix NeuralNetwork::forward(Matrix X, bool training) {
         int cnt = 0;
         bool freeMatrix;
 	for (auto layer : layers) {
-		
                 if(cnt == 0)
                     freeMatrix = false;
                 else
@@ -35,8 +34,6 @@ Matrix NeuralNetwork::forward(Matrix X, bool training) {
 
 void NeuralNetwork::backprop(Matrix predictions, Matrix target) {
 //	std::cout << "dY allocated device:" << dY.device_allocated << "\n";
-	//std::cout << "pred shape: " << predictions.shape.y << "\n";
-	//std::cout << "tar shape: " << target.shape.y << "\n";
         dY.allocateMemoryIfNotAllocated(predictions.shape);
 	Matrix& error = bce_cost.dCost(predictions, target, dY);
         //std::cout << "Error.x" = error.shape.x << "\n";
@@ -50,17 +47,6 @@ void NeuralNetwork::backprop(Matrix predictions, Matrix target) {
 	cudaDeviceSynchronize();
 }
 
-void NeuralNetwork::NodeAggSetData(int* row, int* col) {
-
-	for(auto layer : layers) {
-	    if((layer->getName() == "nodeagg1") || (layer->getName() == "nodeagg3"))
-		layer->setData(row,col);
-	}
-} 
 std::vector<NNLayer*> NeuralNetwork::getLayers() const {
-	printf("yo");
-//	for(auto layer: layers) {
-//	std::cout << layer.name() << "\n";
-//	}
 	return layers;
 }

@@ -27,10 +27,9 @@ Data::Data(int num_nodes, size_t batch_size,int feature_size, int label_size, in
         std::cout << "input_labels.x:" << input_labels.shape.x << "\n";
         std::cout << "input_labels.y:" << input_labels.shape.y << "\n";
 	
-        for (int i = 0; i < (num_nodes-1000); i++) {
-        //for (int i = 0; i < num_nodes; i++) {
+        for (int i = 0; i < num_nodes; i++) {
 	    for (int j = 0; j < feature_size; j++) {
-                input_features[i * feature_size + j ] = feature [i *(feature_size) + j + 7000];
+                input_features[i * feature_size + j ] = feature [i *(feature_size) + j];
                // if(feature[i * feature_size + j]){
                //    std::cout << "feature[" << i * (feature_size) + j << "]"<<feature[i * (feature_size) + j] << "\n"; 
                //    std::cout << "input features[" << i * (feature_size) + j << "]" << input_features[i * (feature_size) + j] << "\n"; 

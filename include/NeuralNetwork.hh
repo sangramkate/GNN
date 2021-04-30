@@ -19,7 +19,7 @@ public:
 
 	Matrix forward(Matrix X, bool training);
 	void backprop(Matrix predictions, Matrix target);
-	void NodeAggSetData(int* row, int* col);
+
 	void addLayer(NNLayer *layer);
 	std::vector<NNLayer*> getLayers() const;
 

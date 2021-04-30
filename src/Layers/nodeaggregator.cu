@@ -17,7 +17,6 @@ Z.allocateCuda(A.shape);
 SpMM(nnz_data, row, col, A.data_device, Z.data_device, A.shape.y, nodes, nnz);
 //    std::cout << " NodeAgg forward shape.x:" << Z.shape.x << "\n";
 //    std::cout << " NodeAgg forward shape.y:" << Z.shape.y << "\n";
-//printf("nodeagg Z.x %d Z.y %d\n",Z.shape.x, Z.shape.y);
 if(freeMatrix)
     A.freeMem();
 //std::cout<<"Nodeagg ptr:" << Z.data_device << "\n";
@@ -37,11 +36,6 @@ SpMM(nnz_data, row, col, dZ.data_device, dA.data_device, dZ.shape.y, nodes, nnz)
  //   std::cout << " NodeAgg backward shape.y:" << dA.shape.y << "\n";
 dZ.freeMem();
 return dA;
-}
-
-void NodeAggregator::setData(int* row_data, int* col_data) {
-    this->row = row_data;
-    this->col = col_data;
 }
 
 NodeAggregator::NodeAggregator(std::string name, float* nnz_data, int* row, int*col, int nodes, int nnz)

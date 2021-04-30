@@ -16,7 +16,7 @@ private:
 public:
     NodeAggregator(std::string name, float* nnz_data, int* row, int*col, int nodes, int nnz);
     ~NodeAggregator();
-    void setData(int* row_data, int* col_data); 
+    
     Matrix& forward(Matrix& A, bool training, bool freeMatrix);
     Matrix& backprop(Matrix& dZ, float learning_rate);
    
