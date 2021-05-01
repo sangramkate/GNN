@@ -33,7 +33,7 @@ __global__ void SoftMaxBackprop( float* dZ, float*dA, float* A, int dZ_x_dim, in
     float sum = 0.0f;
   	if (row < dA_x_dim) {
             for(int i=0; i< dA_y_dim; i=i+1){
-                dA[i + dA_y_dim * row] = A[i + dA_y_dim * row] - dZ[i + dA_y_dim * row];
+                dA[i + dA_y_dim * row] = A[i + dA_y_dim * row] * (1-A[i + dA_y_dim * row])  *  dZ[i + dA_y_dim * row];
             }
         }
 }

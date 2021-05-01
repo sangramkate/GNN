@@ -3,7 +3,7 @@
 
 class LinearLayer: public NNLayer{
 private:
-    const float weights_init_threshold = 0.01;
+    const float weights_init_threshold = 1;
     
     Matrix W;
     Matrix b;
