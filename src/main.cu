@@ -14,12 +14,14 @@
 #include "csr_graph.h"
 #include "data.hh" 
 
+
+
 float computeAccuracy(const Matrix& predictions, const Matrix& targets);
 
 int main() {
 
         //std::fstream myfile("/net/ohm/export/iss/inputs/Learning/cora-labels.txt", std::ios_base::in);
-        std::fstream myfile("/home/07149/skate/GraphConvolutionalNetwork/cora/cora/cora-label.txt", std::ios_base::in);
+        std::fstream myfile("cora/cora/cora-label.txt", std::ios_base::in);
         int* label = (int *) malloc(2708*7*sizeof(int));
         int i = 0;
         std::string a;
@@ -95,7 +97,7 @@ int main() {
         std::cout << "Instance of Neural Network\n";
 	nn.addLayer(new NodeAggregator("nodeagg1", d_edge_data, d_row_start, d_edge_dst, 2708, nnz));
         std::cout << "Added Nodeaggregator 1 layer\n";
-	nn.addLayer(new LinearLayer("linear1", Shape(label_size,feature_size)));
+	nn.addLayer(new LinearLayer("linear1", Shape(feature_size, label_size)));
         std::cout << "Added Linear layer 1\n";
 	nn.addLayer(new ReLUActivation("relu1"));
         std::cout << "Added relu layer 1\n";
@@ -120,7 +122,7 @@ int main() {
         std::cout << "Instance of Neural Network complete\n";
 	// network training
 	Matrix Y;
-	for (int epoch = 0; epoch < 10001; epoch++) {
+	for (int epoch = 0; epoch < 1; epoch++) {
 		float cost = 0.0;
 
 //		for (int batch = 0; batch < dataset.getNumOfTrainingBatches(); batch++) {

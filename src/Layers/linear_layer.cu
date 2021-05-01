@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <iostream>
 #include <random>
+#include <cublas_v2.h>
 
 #include "linear_layer.hh"
 #include "nn_exception.hh"
@@ -21,7 +22,7 @@ __global__ void linearLayerForward( float* W, float* A, float* Z, float* b,
        for(int i=0; i< W_y_dim; i=i+1){
            Z_value += W[i + W_y_dim * col] * A[i + A_y_dim * row]; 
        }
-       Z[row * Z_y_dim + col] = Z_value + b[col];
+       Z[row * Z_y_dim + col] = Z_value + b[col]; 
       // if(Z[row * Z_y_dim + col] > 0)
       //    printf("Z[%d]: %f\n", row * Z_y_dim + col, Z[row * Z_y_dim + col]);
     }
@@ -106,6 +107,7 @@ void LinearLayer::initializeWeightsRandomly(){
     for(int x = 0; x < W.shape.x; x++){
 	for(int y = 0 ; y < W.shape.y; y++){
 	     W[x * W.shape.y + y] = normal_distribution(generator) * weights_init_threshold;	
+	     //printf("W[%d] = %f\n", (x * W.shape.y + y), W[x * W.shape.y + y]);
 	}
     }
 //    std::cout << "copying data from host to device\n";
@@ -122,17 +124,17 @@ void LinearLayer::initializeBiasWithZeros() {
 }
 
 Matrix& LinearLayer::forward(Matrix& A, bool training, bool freeMatrix){
- //   std::cout << " Linear forward A.x:" << A.shape.x << "\n";
- //  std::cout << " Linear forward A.y:" << A.shape.y << "\n";
- //  std::cout << " Linear forward W.x:" << W.shape.x << "\n";
- //  std::cout << " Linear forward W.y:" << W.shape.y << "\n";
- //   std::cout << " Linear forward A address:" << A.data_device << "\n";
-    assert(W.shape.y = A.shape.y);
+//   std::cout << " Linear forward A.x:" << A.shape.x << "\n";
+//  std::cout << " Linear forward A.y:" << A.shape.y << "\n";
+//  std::cout << " Linear forward W.x:" << W.shape.x << "\n";
+//  std::cout << " Linear forward W.y:" << W.shape.y << "\n";
+//   std::cout << " Linear forward A address:" << A.data_device << "\n";
+    assert(W.shape.x = A.shape.y);
    // std::cout << "Linear layer forward\n";
     //std::cout<< "Linear Layer ptr:" << A.data_device << "\n";
     this->A = A;
     //std::cout<< "Linear Layer ptr:" << A.data_device << "\n";
-    Shape Z_shape(A.shape.x,W.shape.x);
+    Shape Z_shape(A.shape.x,W.shape.y);
     Z.allocateCuda(Z_shape);
     computeAndStoreLayerOutput(A);
 //    std::cout << "Linear Layer forward\n";
@@ -148,15 +150,52 @@ Matrix& LinearLayer::forward(Matrix& A, bool training, bool freeMatrix){
     return Z;
 	
 }
+
+
+__global__ void print_kernel(float *A) {
+	printf("The value of A[0] = %f\n", A[0]);
+}
+
 void LinearLayer::computeAndStoreLayerOutput(Matrix& A) {
-dim3 block_size(32,32);
-dim3 num_of_blocks(((Z.shape.x + block_size.x - 1) / block_size.x),((Z.shape.y + block_size.y - 1) / block_size.y) );
-linearLayerForward<<<num_of_blocks, block_size>>>( W.data_device,
-				                   A.data_device,
-						   Z.data_device,
-						   b.data_device,
-						   W.shape.x, W.shape.y,
-						   A.shape.x, A.shape.y);
+
+	/*
+	dim3 block_size(32,32);
+	dim3 num_of_blocks(((Z.shape.x + block_size.x - 1) / block_size.x),((Z.shape.y + block_size.y - 1) / block_size.y) );
+	linearLayerForward<<<num_of_blocks, block_size>>>( W.data_device,
+							   A.data_device,
+							   Z.data_device,
+							   b.data_device,
+							   W.shape.x, W.shape.y,
+							   A.shape.x, A.shape.y);
+	*/
+
+	// Create a handle for CUBLAS
+	cublasHandle_t handle;
+	cublasCreate(&handle);
+	
+	// Do the actual multiplication
+	//alpha * op(A) * op(B) + beta * OP(C)
+	// C(m,n) = A(m,k) * B(k,n)
+
+	int m = A.shape.x;
+	int n = W.shape.y;
+	int k = W.shape.x;
+	int lda=m,ldb=k,ldc=m;
+	const float alf = 1;
+	const float bet = 0;
+
+	const float *alpha = &alf;
+	const float *beta = &bet;
+
+	cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, m, n, k, alpha, A.data_device, lda, W.data_device, ldb, beta, Z.data_device, ldc);
+	
+
+	//print_kernel<<<1,1>>>(Z.data_device);
+
+	//TODO: use bias to add to this matrix!! ---> TODO: do we need to use the same bias for all?
+
+	// Destroy the handle
+	cublasDestroy(handle);
 }
 
 Matrix& LinearLayer::backprop(Matrix& dZ, float learning_rate) {

@@ -17,7 +17,7 @@ CC_LIBS=
 # NVCC compiler options:
 
 NVCC=nvcc
-NVCC_FLAGS= -g -G -lcusparse -arch=compute_70 -code=sm_70
+NVCC_FLAGS= -g -G -lcusparse -lcublas -arch=compute_70 -code=sm_70
 NVCC_LIBS=
 
 # CUDA library directory:
@@ -68,7 +68,7 @@ OBJS = $(OBJ_DIR)/main.o $(OBJ_DIR)/activation.o $(OBJ_DIR)/linear_layer.o $(OBJ
 #Link c++ and CUDA compiled object files to target executable:
 
 $(EXE) : $(OBJS)
-	${NVCC} $(CC_FLAGS) $(OBJS) -g -G -lcusparse -arch=compute_70 --expt-extended-lambda -o $@ $(CUDA_LINK_LIBS)
+	${NVCC} $(CC_FLAGS) $(OBJS) -g -G -lcusparse -lcublas -arch=compute_70 --expt-extended-lambda -o $@ $(CUDA_LINK_LIBS)
 
 #  Compile main .cpp file to object files:
 # $(OBJ_DIR)/%.o : %.cpp
