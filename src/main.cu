@@ -18,8 +18,9 @@ float computeAccuracy(const Matrix& predictions, const Matrix& targets);
 
 int main() {
 
+         cudaSetDevice(0);
         //std::fstream myfile("/net/ohm/export/iss/inputs/Learning/cora-labels.txt", std::ios_base::in);
-        std::fstream myfile("/home/07149/skate/GraphConvolutionalNetwork/cora/cora/cora-label.txt", std::ios_base::in);
+        std::fstream myfile("cora/cora/cora-label.txt", std::ios_base::in);
         int* label = (int *) malloc(2708*7*sizeof(int));
         int i = 0;
         std::string a;
@@ -90,7 +91,7 @@ int main() {
         free(label);
         free(h_B);
 	std::cout << "Dataset captured!\n";
-        NeuralNetwork nn(0.001);
+        NeuralNetwork nn(0.01);
         //-----------------------------------------------
         std::cout << "Instance of Neural Network\n";
 	nn.addLayer(new NodeAggregator("nodeagg1", d_edge_data, d_row_start, d_edge_dst, 2708, nnz));
@@ -120,7 +121,7 @@ int main() {
         std::cout << "Instance of Neural Network complete\n";
 	// network training
 	Matrix Y;
-	for (int epoch = 0; epoch < 10001; epoch++) {
+	for (int epoch = 0; epoch < 1000; epoch++) {
 		float cost = 0.0;
 
 //		for (int batch = 0; batch < dataset.getNumOfTrainingBatches(); batch++) {
@@ -132,7 +133,7 @@ int main() {
                         //std::cout << "cost computed!\n";
 //		}
 //                std::cout << "epoch:" << epoch << "\n";
-		if (epoch % 100 == 0) {
+		if (epoch % 10 == 0) {
 			std::cout 	<< "Epoch: " << epoch
 						<< ", Cost: " << cost / 100
 						<< std::endl;

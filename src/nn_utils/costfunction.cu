@@ -14,9 +14,11 @@ __global__ void binaryCrossEntropyCost(float* predictions, float* target, int si
               //  partial_cost += target[index* prediction_y + i] * logf(predictions[index * prediction_y + i]) 
               //                                                  + (1.0f - target[index * prediction_y + i]) 
               //                                                  * logf(1.0f - predictions[index * prediction_y + i]);
-                  partial_cost += target[index* prediction_y + i] * logf(predictions[index * prediction_y + i]); 
+              //    partial_cost += target[index* prediction_y + i] * logf(predictions[index * prediction_y + i]); 
+                  partial_cost += 0.5 * (target[index* prediction_y + i] - predictions[index * prediction_y + i])* (target[index* prediction_y + i] - predictions[index * prediction_y + i]); 
                 }
-		atomicAdd(cost, - partial_cost);
+               // printf("Partial_cost=%f\n",partial_cost);
+		atomicAdd(cost, partial_cost);
 	}
 }
 
@@ -27,7 +29,8 @@ __global__ void dBinaryCrossEntropyCost(float* predictions, float* target, float
 	if (index < size) {
                 for(int i = 0 ; i < prediction_y; i++){ 
 		  //  dY[index*prediction_y + i] = -1.0 * ( target[index * prediction_y + i]/predictions[index * prediction_y + i] - (1 - target[index * prediction_y + i])/(1 - predictions[index * prediction_y + i]) );
-		    dY[index*prediction_y + i] = target[index * prediction_y + i];
+		  //  dY[index*prediction_y + i] = target[index * prediction_y + i];
+		    dY[index*prediction_y + i] = target[index * prediction_y + i]-predictions[index * prediction_y + i];
                 }
 	}
 }

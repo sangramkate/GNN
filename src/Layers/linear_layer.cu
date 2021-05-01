@@ -39,7 +39,7 @@ __global__ void linearLayerBackprop( float* W, float* dZ, float*dA,
     float dA_value = 0.0f;
   	if (row < dA_x_dim && col < dA_y_dim) {
 		    for (int i = 0; i < W_x_dim; i++) {
-			      dA_value += W[i * W_y_dim + col] * dZ[ i + dZ_y_dim * row];
+			      dA_value += -1 * W[i * W_y_dim + col] * dZ[ i + dZ_y_dim * row];
 		    }
 		    dA[row * dA_y_dim + col] = dA_value;
 	  }
@@ -61,9 +61,9 @@ __global__ void linearLayerUpdateWeights(  float* dZ, float* A, float* W,
 
 	if (row < W_x_dim && col < W_y_dim) {
 		for (int i = 0; i < dZ_x_dim; i++) {
-		    dW_value += dZ[i * dZ_y_dim + row ] * A[col + A_y_dim * i];
+		    dW_value += -1 * dZ[i * dZ_y_dim + row ] * A[col + A_y_dim * i];
 		}
-		W[row * W_y_dim + col] = W[row * W_y_dim + col] - learning_rate * (dW_value / A_x_dim);
+		W[row * W_y_dim + col] = W[row * W_y_dim + col] - learning_rate * (dW_value);
 	}
 }
 
