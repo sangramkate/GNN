@@ -3,7 +3,7 @@
 
 class LinearLayer: public NNLayer{
 private:
-    const float weights_init_threshold = 1;
+    const float weights_init_threshold = 0.1;
     
     Matrix W;
     Matrix b;
@@ -11,10 +11,12 @@ private:
     Matrix Z;
     Matrix A;
     Matrix dA;
+    Matrix dW;
     
     void initializeBiasWithZeros();
     void initializeWeightsRandomly();
-    
+   
+    void runGEMM(Matrix& A, Matrix& B, Matrix& C, bool transposeA, bool transposeB);  
     void computeAndStoreBackpropError(Matrix& dZ);
     void computeAndStoreLayerOutput(Matrix& A);
     void updateWeights(Matrix& dz, float learining_rate);

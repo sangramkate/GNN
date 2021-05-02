@@ -36,8 +36,8 @@ void NeuralNetwork::backprop(Matrix predictions, Matrix target) {
 //	std::cout << "dY allocated device:" << dY.device_allocated << "\n";
         dY.allocateMemoryIfNotAllocated(predictions.shape);
 	Matrix& error = bce_cost.dCost(predictions, target, dY);
-        //std::cout << "Error.x" = error.shape.x << "\n";
-        //std::cout << "Error.y" = error.shape.y << "\n";
+        //std::cout << "Error.x = " << error.shape.x << "\n";
+        //std::cout << "Error.y = " << error.shape.y << "\n";
 
 	for (auto it = this->layers.rbegin(); it != this->layers.rend(); it++) {
 		error = (*it)->backprop(error, learning_rate);

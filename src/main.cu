@@ -85,6 +85,9 @@ int main() {
 //Filling up the sparse matrix info
         graph.readFromGR(gr_file , binFile , d_row_start, d_edge_dst , d_B, feature_size);
         alloc = cudaMemcpy(h_B, d_B, (2708 * 1433 *sizeof(float)), cudaMemcpyDeviceToHost);
+	
+	int hidden_size = 10;	
+
 	if(alloc != cudaSuccess) {
     	printf("Feature matrix memcpy failed\n");
 	} 
@@ -98,7 +101,7 @@ int main() {
         std::cout << "Instance of Neural Network\n";
 	nn.addLayer(new NodeAggregator("nodeagg1", d_edge_data, d_row_start, d_edge_dst, 2708, nnz));
         std::cout << "Added Nodeaggregator 1 layer\n";
-	nn.addLayer(new LinearLayer("linear1", Shape(feature_size, label_size)));
+	nn.addLayer(new LinearLayer("linear1", Shape(feature_size, hidden_size)));
         std::cout << "Added Linear layer 1\n";
 	nn.addLayer(new ReLUActivation("relu1"));
         std::cout << "Added relu layer 1\n";
@@ -112,7 +115,7 @@ int main() {
         //-----------------------------------------------
         nn.addLayer(new NodeAggregator("nodeagg3", d_edge_data, d_row_start, d_edge_dst, 2708, nnz));
         std::cout << "Added Nodeaggregator layer 3\n";
-	nn.addLayer(new LinearLayer("linear3", Shape(label_size,label_size)));
+	nn.addLayer(new LinearLayer("linear3", Shape(hidden_size,label_size)));
         std::cout << "Added Linear layer 3\n";
 	nn.addLayer(new ReLUActivation("relu3"));
         std::cout << "Added Relu layer 3\n"; 
@@ -123,7 +126,7 @@ int main() {
         std::cout << "Instance of Neural Network complete\n";
 	// network training
 	Matrix Y;
-	for (int epoch = 0; epoch < 1000; epoch++) {
+	for (int epoch = 0; epoch < 20; epoch++) {
 		float cost = 0.0;
 
 //		for (int batch = 0; batch < dataset.getNumOfTrainingBatches(); batch++) {

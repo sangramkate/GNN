@@ -28,6 +28,19 @@ __global__ void linearLayerForward( float* W, float* A, float* Z, float* b,
     }
 }
 
+__global__ void linearLayerForwardAddBias( float* Z, float* bias, int numFeatures) {
+
+    // APARNA TODO: fuse bias addition and reLU application
+    // APARNA TODO: if this takes a lot of time -- can merge computations for some features like fuseGNN
+    //Add Z: #nodes * #labels , b: labels * 1 (or 1 * labels) doesn't matter
+  
+    //APARNA TODO: maybe doing an inner loop where we process > 1 node per CTA will help  -- will reduce launch overhead
+    for(int feature = threadIdx.x ; feature < numFeatures; feature += blockDim.x) {
+	Z[blockIdx.x * numFeatures + feature] = Z[blockIdx.x * numFeatures + feature] + bias[feature];
+    }
+    
+}
+
 __global__ void linearLayerBackprop( float* W, float* dZ, float*dA,
                                                                     int W_x_dim, int W_y_dim,
                                                                     int dZ_x_dim, int dZ_y_dim){
@@ -46,27 +59,41 @@ __global__ void linearLayerBackprop( float* W, float* dZ, float*dA,
 	  }
 }
 
-__global__ void linearLayerUpdateWeights(  float* dZ, float* A, float* W,
-										   int dZ_x_dim, int dZ_y_dim,
-										   int A_x_dim, int A_y_dim,
-										   float learning_rate) {
+__global__ void linearLayerUpdateWeights(  float* W, float* dW,
+						int W_x_dim, int W_y_dim,
+						float learning_rate) {
 
-	int row = blockIdx.x * blockDim.x + threadIdx.x;
-	int col = blockIdx.y * blockDim.y + threadIdx.y;
+	//W = W - (n) * dW
 
-	// A is treated as transposed
-	int W_x_dim = dZ_y_dim;
-	int W_y_dim = A_y_dim;
+	int x = blockIdx.x * blockDim.x + threadIdx.x;
+	int y = blockIdx.y * blockDim.y + threadIdx.y;
 
-	float dW_value = 0.0f;
-
-	if (row < W_x_dim && col < W_y_dim) {
-		for (int i = 0; i < dZ_x_dim; i++) {
-		    dW_value += -1 * dZ[i * dZ_y_dim + row ] * A[col + A_y_dim * i];
-		}
-		W[row * W_y_dim + col] = W[row * W_y_dim + col] - learning_rate * (dW_value);
+	if( x < W_x_dim && y < W_y_dim) {
+	    W[x * W_y_dim + y] += (-1) * (learning_rate) * dW[x * W_y_dim + y];
 	}
 }
+
+
+//Reduces mxn array into 1xm array
+__global__ void reduce_array(volatile scalar_t* sdata, unsigned int tid, unsigned int reduce_len, unsigned int f_dim){
+
+    __shared__ scalar_t s_feature[blockSize];
+
+
+    while (reduce_len > 1){
+        __syncthreads();
+        // add the remainer
+        if ((tid < f_dim) && (reduce_len % 2 == 1)){
+            sdata[tid] += sdata[tid + f_dim * (reduce_len - 1)];
+        }
+        reduce_len /= 2;
+        if (tid < f_dim * reduce_len){
+            sdata[tid] += sdata[tid + f_dim * reduce_len];
+        }
+    }
+}
+
+
 
 __global__ void linearLayerUpdateBias(  float* dZ, float* b,
 										int dZ_x_dim, int dZ_y_dim,
@@ -79,6 +106,42 @@ __global__ void linearLayerUpdateBias(  float* dZ, float* b,
 		int dZ_y = index / dZ_y_dim;
 		atomicAdd(&b[dZ_y], - learning_rate * (dZ[dZ_y * dZ_y_dim + dZ_x] / dZ_y_dim));
 	}
+}
+
+
+void LinearLayer::runGEMM(Matrix& A, Matrix& B, Matrix& C, bool transposeA, bool transposeB) {
+	//The take transpose function is for back propagation --> we multiply A.B' instead of A.B if this is turned on
+
+	// Create a handle for CUBLAS
+	cublasHandle_t handle;
+	cublasCreate(&handle);
+	
+	// Do the actual multiplication
+	//alpha * op(A) * op(B) + beta * OP(C)
+	// C(m,n) = A(m,k) * B(k,n)
+
+	int m = C.shape.x;
+	int n = C.shape.y;
+	int k = transposeA ? B.shape.x : A.shape.y;
+
+	int lda=k,ldb=n,ldc=n;
+
+	const float alf = 1;
+	const float bet = 0;
+
+	const float *alpha = &alf;
+	const float *beta = &bet;
+
+	//Note: This function can't support the case when both transposeA and B are set to 1	
+	cublasSgemm(handle, 
+		    transposeB ? CUBLAS_OP_T : CUBLAS_OP_N, 
+		    transposeA ? CUBLAS_OP_T : CUBLAS_OP_N, 
+		    n, m, k, alpha, B.data_device, ldb, A.data_device, lda, beta, C.data_device, ldc);
+	
+	//print_kernel<<<1,1>>>(Z.data_device);
+
+	// Destroy the handle
+	cublasDestroy(handle);
 }
 
 LinearLayer::LinearLayer(std::string name, Shape W_shape):
@@ -158,49 +221,18 @@ __global__ void print_kernel(float *A) {
 
 void LinearLayer::computeAndStoreLayerOutput(Matrix& A) {
 
-	/*
-	dim3 block_size(32,32);
-	dim3 num_of_blocks(((Z.shape.x + block_size.x - 1) / block_size.x),((Z.shape.y + block_size.y - 1) / block_size.y) );
-	linearLayerForward<<<num_of_blocks, block_size>>>( W.data_device,
-							   A.data_device,
-							   Z.data_device,
-							   b.data_device,
-							   W.shape.x, W.shape.y,
-							   A.shape.x, A.shape.y);
-	*/
-
-	// Create a handle for CUBLAS
-	cublasHandle_t handle;
-	cublasCreate(&handle);
-	
-	// Do the actual multiplication
-	//alpha * op(A) * op(B) + beta * OP(C)
-	// C(m,n) = A(m,k) * B(k,n)
-
-	int m = A.shape.x;
+	runGEMM(A, W, Z, false, false);	
+	//Num CTAs = #nodes, #threads = min(256, numFeatures)
 	int n = W.shape.y;
-	int k = W.shape.x;
-	int lda=m,ldb=k,ldc=m;
-	const float alf = 1;
-	const float bet = 0;
-
-	const float *alpha = &alf;
-	const float *beta = &bet;
-
-	cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, m, n, k, alpha, A.data_device, lda, W.data_device, ldb, beta, Z.data_device, ldc);
+	int threadsPerBlock = std::min(256, n);
+	linearLayerForwardAddBias<<<(Z.shape.x + threadsPerBlock - 1)/threadsPerBlock, threadsPerBlock>>>(Z.data_device, b.data_device, Z.shape.y);
 	
-
-	//print_kernel<<<1,1>>>(Z.data_device);
-
-	//TODO: use bias to add to this matrix!! ---> TODO: do we need to use the same bias for all?
-
-	// Destroy the handle
-	cublasDestroy(handle);
 }
 
 Matrix& LinearLayer::backprop(Matrix& dZ, float learning_rate) {
       //  std::cout << "Linear layer backword\n";
 	dA.allocateCuda(A.shape);
+	dW.allocateCuda(W.shape); //A'.dZ
 
       //  std::cout << "Linear Layer backward\n";
 	computeAndStoreBackpropError(dZ);
@@ -223,32 +255,44 @@ Matrix& LinearLayer::backprop(Matrix& dZ, float learning_rate) {
         //std::cout << " Linear backward shape.x:" << dA.shape.x << "\n";
         //std::cout << " Linear backward shape.y:" << dA.shape.y << "\n";
         dZ.freeMem();
+	dW.freeMem();
         if(A.device_allocated == true) A.freeMem();
 	return dA;
 }
 
 void LinearLayer::computeAndStoreBackpropError(Matrix& dZ) {
-	dim3 block_size(32, 32);
-	dim3 num_of_blocks((A.shape.x + block_size.x - 1) / block_size.x,(A.shape.y + block_size.y - 1) / block_size.y);
-	linearLayerBackprop<<<num_of_blocks, block_size >>> ( W.data_device,
-							     dZ.data_device,
-							     dA.data_device,
-							     W.shape.x, W.shape.y,
-							     dZ.shape.x, dZ.shape.y);
+
+	//std::cout << "dZ.x = " << dZ.shape.x << ", dZ.y = " << dZ.shape.y << std::endl;
+	//std::cout << "dA.x = " << dA.shape.x << ", dA.y = " << dA.shape.y << std::endl;
+
+	//W: 10x7, dz: 2708x7, dA: 2708x10 
+	// So dA = dz.W'
+	runGEMM(W, dZ, dA, false, true);	
+	//TODO: need to multiply dA with -1. <<< Are we sure??? -- why not do that in dZ calculation?>>>
 }
 
 void LinearLayer::updateWeights(Matrix& dZ, float learning_rate) {
-	dim3 block_size(32, 32);
+
+	//dW = A'.dZ
+	//dw: 10x7, A: 2708x10, dZ: 2708x7	
+	runGEMM(dW, A, dZ, true, false);	
+
+	dim3 block_size(16, 16);
 	dim3 num_of_blocks((W.shape.x + block_size.x - 1) / block_size.x,(W.shape.y + block_size.y - 1) / block_size.y);
-	linearLayerUpdateWeights<<<num_of_blocks, block_size>>>(dZ.data_device,
-								A.data_device,
-								W.data_device,
-								dZ.shape.x, dZ.shape.y,
-								A.shape.x, A.shape.y,
+	linearLayerUpdateWeights<<<num_of_blocks, block_size>>>(W.data_device,
+								dW.data_device,
+								W.shape.x, W.shape.y,
 								learning_rate);
 }
 
 void LinearLayer::updateBias(Matrix& dZ, float learning_rate) {
+
+	//db: 1x7
+	//The operation is dB = dZ.(reduce in Xdim) so 2708x7 --> 1x7 
+	//Then b = b - (n) * dB
+	
+	//Need to write a reduction kernel for the first line
+
 	dim3 block_size(256);
 	dim3 num_of_blocks( (dZ.shape.y * dZ.shape.x + block_size.x - 1) / block_size.x);
 	linearLayerUpdateBias<<<num_of_blocks, block_size>>>(dZ.data_device,
