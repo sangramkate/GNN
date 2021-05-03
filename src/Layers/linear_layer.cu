@@ -73,7 +73,7 @@ __global__ void linearLayerUpdateWeights(  float* W, float* dW,
 	}
 }
 
-
+/*
 //Reduces mxn array into 1xm array
 __global__ void reduce_array(volatile scalar_t* sdata, unsigned int tid, unsigned int reduce_len, unsigned int f_dim){
 
@@ -92,7 +92,7 @@ __global__ void reduce_array(volatile scalar_t* sdata, unsigned int tid, unsigne
         }
     }
 }
-
+*/
 
 
 __global__ void linearLayerUpdateBias(  float* dZ, float* b,
@@ -277,6 +277,7 @@ void LinearLayer::updateWeights(Matrix& dZ, float learning_rate) {
 	//dw: 10x7, A: 2708x10, dZ: 2708x7	
 	runGEMM(dW, A, dZ, true, false);	
 
+	//W = W - (n) * dW
 	dim3 block_size(16, 16);
 	dim3 num_of_blocks((W.shape.x + block_size.x - 1) / block_size.x,(W.shape.y + block_size.y - 1) / block_size.y);
 	linearLayerUpdateWeights<<<num_of_blocks, block_size>>>(W.data_device,

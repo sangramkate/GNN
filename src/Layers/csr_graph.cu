@@ -234,46 +234,47 @@ if(alloc != cudaSuccess) {
   return 0;
 }
 
+//SpMM(nnz_data, row, col, A.data_device, Z.data_device, A.shape.y, nodes, nnz);
  void SpMM(float* nnz_data, int* row, int* col, float* d_B, float* d_C, int FV_size, int m, int nnz) {
-//Allocating memory for output matrix
-int n = FV_size;
-//float *h_C = (float*)malloc(m * m * sizeof(float));
-//if(!h_C) {
-//    printf("malloc for output matrix failed\n");
-//}
-//cudaError_t alloc;
+	//Allocating memory for output matrix
+	int n = FV_size;
+	//float *h_C = (float*)malloc(m * m * sizeof(float));
+	//if(!h_C) {
+	//    printf("malloc for output matrix failed\n");
+	//}
+	//cudaError_t alloc;
 
-//Prepping for Cusparse function
-cusparseHandle_t cusparse1 = NULL;
-cusparseMatDescr_t      descrA  ;
-cusparseCreateMatDescr(&descrA);
-cusparseSetMatType(descrA, CUSPARSE_MATRIX_TYPE_GENERAL);
-cusparseSetMatIndexBase(descrA, CUSPARSE_INDEX_BASE_ZERO);
+	//Prepping for Cusparse function
+	cusparseHandle_t cusparse1 = NULL;
+	cusparseMatDescr_t      descrA  ;
+	cusparseCreateMatDescr(&descrA);
+	cusparseSetMatType(descrA, CUSPARSE_MATRIX_TYPE_GENERAL);
+	cusparseSetMatIndexBase(descrA, CUSPARSE_INDEX_BASE_ZERO);
 
-const float alp = 1;
-const float bet = 1;
-const float* alpha = &alp;
-const float* beta = &bet;
+	const float alp = 1;
+	const float bet = 0;
+	const float* alpha = &alp;
+	const float* beta = &bet;
 
-cusparseStatus_t result;
-cusparseCreate(&cusparse1);
-result = cusparseScsrmm(cusparse1,CUSPARSE_OPERATION_NON_TRANSPOSE, m, n , m, nnz, alpha, descrA, nnz_data, row, col , d_B, m , beta , d_C, m);
-if(result != CUSPARSE_STATUS_SUCCESS) {
-    printf("Cusparse failed\n");
-}
+	cusparseStatus_t result;
+	cusparseCreate(&cusparse1);
+	result = cusparseScsrmm(cusparse1,CUSPARSE_OPERATION_NON_TRANSPOSE, m, n , m, nnz, alpha, descrA, nnz_data, row, col , d_B, m , beta , d_C, m);
+	if(result != CUSPARSE_STATUS_SUCCESS) {
+	    printf("Cusparse failed\n");
+	}
 
-//alloc = cudaMemcpy(h_C, d_C, m*m*sizeof(float), cudaMemcpyDeviceToHost);
-//if(alloc != cudaSuccess) {
-//    printf("output matrix memcpy failed\n");
-//}
-//int count = 0;
-//for(int i=0;i<(2708*2708);i++) {
-//    if(h_C[i] != 0.0) {
-//	count++;
-//    }
-//}
-//printf("\n %d \n", count);
-  return;
+	//alloc = cudaMemcpy(h_C, d_C, m*m*sizeof(float), cudaMemcpyDeviceToHost);
+	//if(alloc != cudaSuccess) {
+	//    printf("output matrix memcpy failed\n");
+	//}
+	//int count = 0;
+	//for(int i=0;i<(2708*2708);i++) {
+	//    if(h_C[i] != 0.0) {
+	//	count++;
+	//    }
+	//}
+	//printf("\n %d \n", count);
+	  return;
 }
 
 unsigned CSRGraph::read(char file[], int* num_nodes, int* num_edges) {

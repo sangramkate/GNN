@@ -96,7 +96,7 @@ int main() {
         free(label);
         free(h_B);
 	std::cout << "Dataset captured!\n";
-        NeuralNetwork nn(0.01);
+        NeuralNetwork nn(0.02);
         //-----------------------------------------------
         std::cout << "Instance of Neural Network\n";
 	nn.addLayer(new NodeAggregator("nodeagg1", d_edge_data, d_row_start, d_edge_dst, 2708, nnz));
@@ -117,8 +117,8 @@ int main() {
         std::cout << "Added Nodeaggregator layer 3\n";
 	nn.addLayer(new LinearLayer("linear3", Shape(hidden_size,label_size)));
         std::cout << "Added Linear layer 3\n";
-	nn.addLayer(new ReLUActivation("relu3"));
-        std::cout << "Added Relu layer 3\n"; 
+//	nn.addLayer(new ReLUActivation("relu3"));
+//        std::cout << "Added Relu layer 3\n"; 
         //-----------------------------------------------
         nn.addLayer(new SoftMax("softmax"));
         std::cout << "Added softmax layer \n";
@@ -126,7 +126,7 @@ int main() {
         std::cout << "Instance of Neural Network complete\n";
 	// network training
 	Matrix Y;
-	for (int epoch = 0; epoch < 20; epoch++) {
+	for (int epoch = 0; epoch < 1000; epoch++) {
 		float cost = 0.0;
 
 //		for (int batch = 0; batch < dataset.getNumOfTrainingBatches(); batch++) {

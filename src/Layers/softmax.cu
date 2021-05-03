@@ -24,6 +24,7 @@ __global__ void SoftMaxForward( float* A, float* Z,int A_x_dim, int A_y_dim){
        }
     }
 }
+
 __global__ void SoftMaxBackprop( float* dZ, float*dA, float* A, int dZ_x_dim, int dZ_y_dim){
     int row = blockIdx.x * blockDim.x + threadIdx.x;
   
