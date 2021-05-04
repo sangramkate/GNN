@@ -27,6 +27,8 @@ public:
 
         Matrix input_features;
         Matrix input_labels;
+        int* node_array;
+        int* node_array_device;
 	Data(int num_nodes,size_t batch_size, int feature_size, int label_size, int* label, float* feature);
 
 	int getNumOfTrainingBatches();

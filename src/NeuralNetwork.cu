@@ -32,10 +32,10 @@ Matrix NeuralNetwork::forward(Matrix X, bool training) {
 	return Y;
 }
 
-void NeuralNetwork::backprop(Matrix predictions, Matrix target) {
+void NeuralNetwork::backprop(Matrix predictions, Matrix target, int* node_array_device, int num_test_nodes) {
 //	std::cout << "dY allocated device:" << dY.device_allocated << "\n";
         dY.allocateMemoryIfNotAllocated(predictions.shape);
-	Matrix& error = bce_cost.dCost(predictions, target, dY);
+	Matrix& error = bce_cost.dCost(predictions, target, dY, node_array_device, num_test_nodes);
         //std::cout << "Error.x = " << error.shape.x << "\n";
         //std::cout << "Error.y = " << error.shape.y << "\n";
 

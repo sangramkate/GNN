@@ -16,7 +16,7 @@
 
 
 
-float computeAccuracy(const Matrix& predictions, const Matrix& targets);
+float computeAccuracy(const Matrix& predictions, const Matrix& targets, int *node_array, int num_test_nodes);
 
 int main() {
 
@@ -44,10 +44,10 @@ int main() {
         CSRGraph graph;
         char gr_file[]="cora.gr";
         char binFile[]="cora-feat.bin";
-        int *nnodes = 0,*nedges = 0;
+        int nnodes = 0,nedges = 0;
         int feature_size = 1433;
         int label_size = 7;
-        graph.read(gr_file,nnodes,nedges);
+        graph.read(gr_file,&nnodes,&nedges);
         int* d_row_start;
         int* d_edge_dst;
         float* d_edge_data;
@@ -86,7 +86,7 @@ int main() {
         graph.readFromGR(gr_file , binFile , d_row_start, d_edge_dst , d_B, feature_size);
         alloc = cudaMemcpy(h_B, d_B, (2708 * 1433 *sizeof(float)), cudaMemcpyDeviceToHost);
 	
-	int hidden_size = 10;	
+	int hidden_size = 32;	
 
 	if(alloc != cudaSuccess) {
     	printf("Feature matrix memcpy failed\n");
@@ -126,18 +126,16 @@ int main() {
         std::cout << "Instance of Neural Network complete\n";
 	// network training
 	Matrix Y;
+    int num_train_nodes = 0.6 * (nnodes);
+    int num_test_nodes = nnodes - num_train_nodes;
+
 	for (int epoch = 0; epoch < 1000; epoch++) {
 		float cost = 0.0;
 
-//		for (int batch = 0; batch < dataset.getNumOfTrainingBatches(); batch++) {
-                       // std::cout << "input_features:" << dataset.input_features.data_device << "\n";
-			Y = nn.forward(dataset.input_features, true);
-			nn.backprop(Y,dataset.input_labels);
-                        //std::cout << "cost computation start \n";
-			cost += bce_cost.cost(Y,dataset.input_labels);
-                        //std::cout << "cost computed!\n";
-//		}
-//                std::cout << "epoch:" << epoch << "\n";
+		Y = nn.forward(dataset.input_features, true);
+		nn.backprop(Y,dataset.input_labels,dataset.node_array_device,num_test_nodes);
+
+		cost += bce_cost.cost(Y,dataset.input_labels,dataset.node_array_device, num_test_nodes);
 		if (epoch % 10 == 0) {
 			std::cout 	<< "Epoch: " << epoch
 						<< ", Cost: " << cost / 100
@@ -154,7 +152,7 @@ int main() {
                 std::cout << "Y.host allocated:" << Y.host_allocated << "\n";
 		Y.copyDeviceToHost();
                 std::cout << "Y copied to host "<< "\n";
-                accuracy = accuracy + computeAccuracy(Y,dataset.input_labels);
+                accuracy = accuracy + computeAccuracy(Y,dataset.input_labels, dataset.node_array, num_test_nodes);
 //	}
         final_accuracy = accuracy;
 	// compute accuracy
@@ -169,15 +167,21 @@ int main() {
 	return 0;
 }
 
-float computeAccuracy(const Matrix& predictions, const Matrix& targets) {
-	int m = predictions.shape.x * predictions.shape.y;
+float computeAccuracy(const Matrix& predictions, const Matrix& targets, int *node_array, int num_test_nodes) {
 	int correct_predictions = 0;
 
-	for (int i = 0; i < m; i++) {
-		float prediction = predictions[i] > 0.5 ? 1 : 0;
-		if (prediction == targets[i]) {
-			correct_predictions++;
-		}
+	for (int i = 0; i < num_test_nodes; i++) { 
+        int max_class = 0;
+        int max_prediction = -99999;
+        for (int j = 0; j < predictions.shape.y; j++) {
+            if (predictions[node_array[i] * predictions.shape.y + j] > max_prediction) {
+                max_class = j;
+                max_prediction = predictions[node_array[i] * predictions.shape.y + j];
+            }
+        }
+        if (targets[node_array[i] * predictions.shape.y + max_class] == 1) {
+            correct_predictions++;
+        }
 	}
-	return static_cast<float>(correct_predictions) / m;
+	return static_cast<float>(correct_predictions) / (num_test_nodes);
 }

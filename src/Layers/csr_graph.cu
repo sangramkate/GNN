@@ -318,8 +318,8 @@ unsigned CSRGraph::read(char file[], int* num_nodes, int* num_edges) {
     fptr32 += 1;
   int num_node = numNodes;
   int num_edge = numEdges;
-  num_nodes = &num_node;
-  num_edges = &num_edge;
+  *num_nodes = num_node;
+  *num_edges = num_edge;
   cfile.close();
   return 0;
 }

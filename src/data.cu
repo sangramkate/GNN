@@ -27,6 +27,26 @@ Data::Data(int num_nodes, size_t batch_size,int feature_size, int label_size, in
         std::cout << "input_labels.x:" << input_labels.shape.x << "\n";
         std::cout << "input_labels.y:" << input_labels.shape.y << "\n";
 	
+
+        //Randomize an array consisting of all the nodes
+
+        node_array = (int*)malloc(sizeof(int) * num_nodes);
+        for (int i = 0; i < num_nodes; i++) {
+            node_array[i] = i;
+        }   
+        srand(time(NULL));
+        int i;
+        for (i = num_nodes - 1; i > 0; i--) {
+            int j = rand() % (i + 1);
+            int temp = node_array[i];
+            node_array[i] = node_array[j];
+            node_array[j] = temp;
+        }
+        cudaMalloc((void**) &node_array_device,sizeof(int)*num_nodes);
+        cudaMemcpy(node_array_device,node_array,sizeof(int)*num_nodes,cudaMemcpyHostToDevice);
+
+        
+
         for (int i = 0; i < num_nodes; i++) {
 	    for (int j = 0; j < feature_size; j++) {
                 input_features[i * feature_size + j ] = feature [i *(feature_size) + j];

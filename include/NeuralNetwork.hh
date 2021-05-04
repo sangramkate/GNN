@@ -18,7 +18,7 @@ public:
 	~NeuralNetwork();
 
 	Matrix forward(Matrix X, bool training);
-	void backprop(Matrix predictions, Matrix target);
+	void backprop(Matrix predictions, Matrix target, int *node_array_device, int num_test_nodes);
 
 	void addLayer(NNLayer *layer);
 	std::vector<NNLayer*> getLayers() const;

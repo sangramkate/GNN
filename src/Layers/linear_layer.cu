@@ -169,7 +169,7 @@ void LinearLayer::initializeWeightsRandomly(){
 //    std::cout << "W.shape.y:" << W.shape.y <<"\n";	
     for(int x = 0; x < W.shape.x; x++){
 	for(int y = 0 ; y < W.shape.y; y++){
-	     W[x * W.shape.y + y] = normal_distribution(generator) * weights_init_threshold;	
+	     W[x * W.shape.y + y] = normal_distribution(generator);	
 	     //printf("W[%d] = %f\n", (x * W.shape.y + y), W[x * W.shape.y + y]);
 	}
     }
