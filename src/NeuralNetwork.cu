@@ -25,6 +25,7 @@ Matrix NeuralNetwork::forward(Matrix X, bool training) {
                 else
                     freeMatrix = true;
 		Z = layer->forward(Z,training,freeMatrix);
+                cudaDeviceSynchronize();
 	        cnt++;
         }
 
@@ -41,6 +42,7 @@ void NeuralNetwork::backprop(Matrix predictions, Matrix target, int* node_array_
 
 	for (auto it = this->layers.rbegin(); it != this->layers.rend(); it++) {
 		error = (*it)->backprop(error, learning_rate);
+                cudaDeviceSynchronize();
 	}
         //error.freeMem();
         dY.freeMem();

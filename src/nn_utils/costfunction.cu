@@ -12,18 +12,18 @@ __global__ void binaryCrossEntropyCost(float* predictions, float* target, int si
 	if (index >= num_test_nodes && index < size) {
             for(int i = 0 ; i < prediction_y; i++){
                 int index_train = node_array_device[index];
-                partial_cost += (target[index_train* prediction_y + i] * logf(predictions[index_train * prediction_y + i]) 
-                                                              + (1.0f - target[index_train * prediction_y + i]) 
-                                                              * logf(1.0f - predictions[index_train * prediction_y + i]));
+               // partial_cost += (target[index_train* prediction_y + i] * logf(predictions[index_train * prediction_y + i]) 
+               //                                               + (1.0f - target[index_train * prediction_y + i]) 
+               //                                               * logf(1.0f - predictions[index_train * prediction_y + i]));
                 //partial_cost += target[index* prediction_y + i] * logf(predictions[index * prediction_y + i]); 
-                  //partial_cost += 0.5 * (target[index_train* prediction_y + i] - predictions[index_train * prediction_y + i])* (target[index_train* prediction_y + i] - predictions[index_train * prediction_y + i]); 
+                  partial_cost += 0.5 * (target[index_train* prediction_y + i] - predictions[index_train * prediction_y + i])* (target[index_train* prediction_y + i] - predictions[index_train * prediction_y + i]); 
                   //printf("Partial_cost=%f,log=%f\n",partial_cost,logf(predictions[index_train * prediction_y + i]));
                 }
         //printf("Partial_cost=%f,log=%f\n",partial_cost,logf(predictions[index_train * prediction_y + i]);
 		  //  dY[index*prediction_y + i] = target[index * prediction_y + i];
-        if (partial_cost != logf(0)) {
-		    atomicAdd(cost, partial_cost);
-        }
+       // if (partial_cost != logf(0)) {
+		    atomicAdd(cost, -partial_cost);
+       // }
 	}
 }
 
@@ -36,16 +36,20 @@ __global__ void dBinaryCrossEntropyCost(float* predictions, float* target, float
             dY[node_array_device[index]*prediction_y + i] = 0;
         }
     } else if (index < size) {
-            if(index >= num_test_nodes && index < num_test_nodes + 5) {
+                int flag =0;
                 for(int i = 0 ; i < prediction_y; i++){ 
                     int index_train = node_array_device[index];
-                    dY[index_train*prediction_y + i] = (-target[index_train*prediction_y + i] + predictions[index_train * prediction_y + i] ) / 
-                                                        ((1 - predictions[index_train * prediction_y + i]) * predictions[index_train * prediction_y + i]);
-		            //dY[node_array_device[index]*prediction_y + i] = target[node_array_device[index] * prediction_y + i]-predictions[node_array_device[index] * prediction_y + i];
-                    printf("%f:%f, ",target[node_array_device[index] * prediction_y + i],predictions[node_array_device[index] * prediction_y + i]);
+                     // dY[index_train*prediction_y + i] = (-target[index_train*prediction_y + i] + predictions[index_train * prediction_y + i] ) / 
+                     //                                   ((1 - predictions[index_train * prediction_y + i]) * predictions[index_train * prediction_y + i]);
+		    dY[index_train*prediction_y + i] = -target[index_train * prediction_y + i]+predictions[index_train * prediction_y + i];
+                    if(index < num_test_nodes + 5) {
+                         flag = 1;
+                         printf("%f:%f, ",target[index_train * prediction_y + i],predictions[index_train * prediction_y + i]);
+                    } 
                 }
-            printf("\n");
-           }
+             if(flag == 1){
+               printf("\n");
+             }
 	}
 }
 
@@ -80,7 +84,9 @@ float CostFunction::cost(Matrix& predictions, Matrix& target, int *node_array_de
         
         float* cost_value = (float*) malloc(sizeof(float));
         cudaMemcpy(cost_value,cost,sizeof(float),cudaMemcpyDeviceToHost);
-        *cost_value = *cost_value * -1 / (predictions.shape.x - num_test_nodes);
+        printf("initial cost value = %f\n",*cost_value);
+        *cost_value = *cost_value / (predictions.shape.x - num_test_nodes);
+        printf("next cost value = %f\n",*cost_value);
 	//float cost_value = *cost;
 	cudaFree(cost);
 
