@@ -12,18 +12,12 @@ __global__ void binaryCrossEntropyCost(float* predictions, float* target, int si
 	if (index >= num_test_nodes && index < size) {
             for(int i = 0 ; i < prediction_y; i++){
                 int index_train = node_array_device[index];
-               // partial_cost += (target[index_train* prediction_y + i] * logf(predictions[index_train * prediction_y + i]) 
-               //                                               + (1.0f - target[index_train * prediction_y + i]) 
-               //                                               * logf(1.0f - predictions[index_train * prediction_y + i]));
-                //partial_cost += target[index* prediction_y + i] * logf(predictions[index * prediction_y + i]); 
-                  partial_cost += 0.5 * (target[index_train* prediction_y + i] - predictions[index_train * prediction_y + i])* (target[index_train* prediction_y + i] - predictions[index_train * prediction_y + i]); 
-                  //printf("Partial_cost=%f,log=%f\n",partial_cost,logf(predictions[index_train * prediction_y + i]));
-                }
-        //printf("Partial_cost=%f,log=%f\n",partial_cost,logf(predictions[index_train * prediction_y + i]);
-		  //  dY[index*prediction_y + i] = target[index * prediction_y + i];
-       // if (partial_cost != logf(0)) {
+		    partial_cost += (target[index_train*prediction_y + i] * logf(predictions[index_train*prediction_y + i]+1e-15));
+		    if(isnan(partial_cost)) {
+			printf("Pred = %f, log pred = %f\n", predictions[index_train*prediction_y + i], logf(predictions[index_train*prediction_y + i]+1e-15));
+		    }
 		    atomicAdd(cost, -partial_cost);
-       // }
+	    }
 	}
 }
 
@@ -42,6 +36,7 @@ __global__ void dBinaryCrossEntropyCost(float* predictions, float* target, float
                      // dY[index_train*prediction_y + i] = (-target[index_train*prediction_y + i] + predictions[index_train * prediction_y + i] ) / 
                      //                                   ((1 - predictions[index_train * prediction_y + i]) * predictions[index_train * prediction_y + i]);
 		    dY[index_train*prediction_y + i] = -target[index_train * prediction_y + i]+predictions[index_train * prediction_y + i];
+		    printf("\nNode = %d, label = %d, dY = %f, pred = %f\n", index, i, dY[index_train*prediction_y + i], predictions[index_train * prediction_y + i]);
                     if(index < num_test_nodes + 5) {
                          flag = 1;
                          printf("%f:%f, ",target[index_train * prediction_y + i],predictions[index_train * prediction_y + i]);

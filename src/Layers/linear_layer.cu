@@ -124,7 +124,11 @@ void LinearLayer::runGEMM(Matrix& A, Matrix& B, Matrix& C, bool transposeA, bool
 	int n = C.shape.y;
 	int k = transposeA ? B.shape.x : A.shape.y;
 
-	int lda=k,ldb=n,ldc=n;
+	//int lda=k,ldb=n,ldc=n;
+	int lda=transposeA ? m : k;  //mxk
+	//int ldb= n; //transposeB ? n : k;  //  kxn
+	int ldb= transposeB ? k : n;  //  kxn
+	int ldc=n; //mxn
 
 	const float alf = 1;
 	const float bet = 0;
@@ -164,12 +168,12 @@ LinearLayer::~LinearLayer()
 
 void LinearLayer::initializeWeightsRandomly(){
     std::default_random_engine generator;
-    std::normal_distribution<float> normal_distribution(0.0, 1.0);
+    std::normal_distribution<float> normal_distribution(0.0, 0.1);
 //    std::cout << "W.shape.x:" << W.shape.x <<"\n";	
 //    std::cout << "W.shape.y:" << W.shape.y <<"\n";	
     for(int x = 0; x < W.shape.x; x++){
 	for(int y = 0 ; y < W.shape.y; y++){
-	     W[x * W.shape.y + y] = normal_distribution(generator);	
+	     W[x * W.shape.y + y] = normal_distribution(generator)*0.1;	
 	     //printf("W[%d] = %f\n", (x * W.shape.y + y), W[x * W.shape.y + y]);
 	}
     }
@@ -208,15 +212,20 @@ Matrix& LinearLayer::forward(Matrix& A, bool training, bool freeMatrix){
 //    std::cout << " Linear forward A shape.x:" << A.shape.x << "\n";
 //    std::cout << " Linear forward A shape.y:" << A.shape.y << "\n";
 //    std::cout << " Linear forward A address:" << A.data_device << "\n";
-    if(training == false)
-        A.freeMem();
+    if(training == false) {
+	if(freeMatrix) {
+            A.freeMem();
+	}
+     }
     return Z;
 	
 }
 
 
-__global__ void print_kernel(float *A) {
-	printf("The value of A[0] = %f\n", A[0]);
+__global__ void print_kernel_lin(float *A, int size, std::string str) {
+	for(int i=0; i<size; i++) {
+		printf("The value of %s[%d] = %f\n", str, i, A[i]);
+	}
 }
 
 void LinearLayer::computeAndStoreLayerOutput(Matrix& A) {
@@ -229,13 +238,14 @@ void LinearLayer::computeAndStoreLayerOutput(Matrix& A) {
 	
 }
 
-Matrix& LinearLayer::backprop(Matrix& dZ, float learning_rate) {
+Matrix& LinearLayer::backprop(Matrix& dZ, float learning_rate, bool freeMatrix) {
       //  std::cout << "Linear layer backword\n";
 	dA.allocateCuda(A.shape);
 	dW.allocateCuda(W.shape); //A'.dZ
 
       //  std::cout << "Linear Layer backward\n";
 	computeAndStoreBackpropError(dZ);
+	print_kernel_lin<<<1,1>>>(dZ.data_device, 10, "dZ initially");
 	NNException::throwIfDeviceErrorOccurred("Cannot perform back propagation.");
 
 	updateBias(dZ, learning_rate);
@@ -256,7 +266,9 @@ Matrix& LinearLayer::backprop(Matrix& dZ, float learning_rate) {
         //std::cout << " Linear backward shape.y:" << dA.shape.y << "\n";
         dZ.freeMem();
 	dW.freeMem();
-        if(A.device_allocated == true) A.freeMem();
+        if(A.device_allocated == true){
+            if(freeMatrix) A.freeMem();
+        }
 	return dA;
 }
 
@@ -275,7 +287,9 @@ void LinearLayer::updateWeights(Matrix& dZ, float learning_rate) {
 
 	//dW = A'.dZ
 	//dw: 10x7, A: 2708x10, dZ: 2708x7	
-	runGEMM(dW, A, dZ, true, false);	
+	print_kernel_lin<<<1,1>>>(dZ.data_device, 10, "dZ pre update weight");
+	runGEMM(A, dZ, dW, true, false);	
+	print_kernel_lin<<<1,1>>>(dZ.data_device, 10, "dZ post update weight");
 
 	//W = W - (n) * dW
 	dim3 block_size(16, 16);

@@ -39,10 +39,17 @@ void NeuralNetwork::backprop(Matrix predictions, Matrix target, int* node_array_
 	Matrix& error = bce_cost.dCost(predictions, target, dY, node_array_device, num_test_nodes);
         //std::cout << "Error.x = " << error.shape.x << "\n";
         //std::cout << "Error.y = " << error.shape.y << "\n";
+        bool freeMatrix;
+        int cnt = 4;
 
 	for (auto it = this->layers.rbegin(); it != this->layers.rend(); it++) {
-		error = (*it)->backprop(error, learning_rate);
+                if(cnt == 1 )
+                    freeMatrix = false;
+                else
+                    freeMatrix = true;
+		error = (*it)->backprop(error, learning_rate,freeMatrix);
                 cudaDeviceSynchronize();
+	        cnt--;
 	}
         //error.freeMem();
         dY.freeMem();

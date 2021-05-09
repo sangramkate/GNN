@@ -139,15 +139,18 @@ int main() {
     	printf("Feature matrix memcpy failed\n");
 	} 
 	std::cout << "Dataset captured!\n";
-        Data dataset(2708,100,feature_size,label_size,label,h_B);
+        //Data dataset(2708,100,feature_size,label_size,label,h_B);
+	
+	int tmp_val = 40;
+        Data dataset(tmp_val,100,feature_size,label_size,label,h_B);
         free(label);
         free(h_B);
 	std::cout << "Dataset captured!\n";
         NeuralNetwork nn(0.02);
         //-----------------------------------------------
         std::cout << "Instance of Neural Network\n";
-	nn.addLayer(new NodeAggregator("nodeagg1", d_edge_data, d_row_start, d_edge_dst, 2708, 2*nnz+2708));
-        std::cout << "Added Nodeaggregator 1 layer\n";
+	//nn.addLayer(new NodeAggregator("nodeagg1", d_edge_data, d_row_start, d_edge_dst, 2708, 2*nnz+2708));
+        //std::cout << "Added Nodeaggregator 1 layer\n";
 	nn.addLayer(new LinearLayer("linear1", Shape(feature_size, hidden_size)));
         std::cout << "Added Linear layer 1\n";
 	nn.addLayer(new ReLUActivation("relu1"));
@@ -160,8 +163,8 @@ int main() {
        // nn.addLayer(new ReLUActivation("relu2"));
        // std::cout << "Added Relu layer 2\n"; 
         //-----------------------------------------------
-        nn.addLayer(new NodeAggregator("nodeagg3", d_edge_data, d_row_start, d_edge_dst, 2708, 2*nnz+2708));
-        std::cout << "Added Nodeaggregator layer 3\n";
+        //nn.addLayer(new NodeAggregator("nodeagg3", d_edge_data, d_row_start, d_edge_dst, 2708, 2*nnz+2708));
+        //std::cout << "Added Nodeaggregator layer 3\n";
 	nn.addLayer(new LinearLayer("linear3", Shape(hidden_size,label_size)));
         std::cout << "Added Linear layer 3\n";
 //	nn.addLayer(new ReLUActivation("relu3"));
@@ -173,10 +176,10 @@ int main() {
         std::cout << "Instance of Neural Network complete\n";
 	// network training
 	Matrix Y;
-    int num_train_nodes = 0.6 * (nnodes);
-    int num_test_nodes = nnodes - num_train_nodes;
+    int num_train_nodes = tmp_val -1 ; //0.6 * (nnodes);
+    int num_test_nodes = 1 ; //nnodes - num_train_nodes;
 
-	for (int epoch = 0; epoch < 1000; epoch++) {
+	for (int epoch = 0; epoch < 500; epoch++) {
 		float cost = 0.0;
 
 		Y = nn.forward(dataset.input_features, true);
@@ -185,7 +188,7 @@ int main() {
 		cost += bce_cost.cost(Y,dataset.input_labels,dataset.node_array_device, num_test_nodes);
 		if (epoch % 10 == 0) {
 			std::cout 	<< "Epoch: " << epoch
-						<< ", Cost: " << cost / 100
+						<< ", Cost: " << cost
 						<< std::endl;
 		}
                 Y.freeMem();

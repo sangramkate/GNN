@@ -22,6 +22,10 @@ __global__ void ReluActivationBackprop(float* Z, float* dA, float* dZ, int Z_x_d
 			dZ[index] = 0;
 		}
 	}
+	/*
+	if((row > 2700)) {
+		printf("ReLU x = %d, y = %d, dZ = %f, dA = %f\n", row, i, dZ[i + dA_y_dim * row], dA[i + dA_y_dim * row]); 
+	}*/
 }
 
 ReLUActivation::ReLUActivation(std::string name) {
@@ -49,7 +53,7 @@ Matrix& ReLUActivation::forward(Matrix& P, bool training, bool freeMatrix) {
 	return A;
 }
 
-Matrix& ReLUActivation::backprop(Matrix& dA, float learning_rate) {
+Matrix& ReLUActivation::backprop(Matrix& dA, float learning_rate,bool freeMatrix) {
         //std::cout << "Relu Layer backward\n";
 	dZ.allocateCuda(stored_Z.shape);
 	dim3 block_size(256);

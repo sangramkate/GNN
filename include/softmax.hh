@@ -18,5 +18,5 @@ public:
     ~SoftMax();
     
     Matrix& forward(Matrix& A, bool training, bool freeMatrix);
-    Matrix& backprop(Matrix& dZ, float learning_rate = 0.01);
+    Matrix& backprop(Matrix& dZ, float learning_rate, bool freeMatrix);
 };
