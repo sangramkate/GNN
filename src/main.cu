@@ -66,6 +66,10 @@ int main() {
         if(alloc != cudaSuccess) {
             printf("malloc for col info failed\n");
         }
+        alloc = cudaMalloc(&d_edge_data,(2*nnz+2708) * sizeof(float));
+        if(alloc != cudaSuccess) {
+            printf("malloc failed \n");
+        }
         float* d_B;
 
         float* h_B = (float *)malloc((2708) * feature_size * sizeof(float));
@@ -75,17 +79,8 @@ int main() {
         if(alloc != cudaSuccess) {
             printf("cudaMalloc failed for features matrix\n");
         }
-        alloc = cudaMalloc(&d_edge_data,(2*nnz+2708) * sizeof(float));
-        if(alloc != cudaSuccess) {
-            printf("malloc failed \n");
-        }
+
 	float* h_edge_data = (float *)malloc((2*nnz+2708) * sizeof(float));
-        for(int i=0;i<(2*nnz+2708);i++)
-            h_edge_data[i] = 1.0;
-	alloc = cudaMemcpy(d_edge_data, h_edge_data, ((2*nnz+2708) *sizeof(float)), cudaMemcpyHostToDevice);
-        if(alloc != cudaSuccess) {
-        printf("Feature matrix memcpy failed\n");
-        }
 
 //Filling up the sparse matrix info
         //graph.readFromGR(gr_file , binFile , d_row_start, d_edge_dst , d_B, feature_size);
@@ -129,9 +124,27 @@ int main() {
         } 
         printf("egdges = %d\n",i);
 
+        std::fstream edge_data_info;
+        edge_data_info.open("datasets/cora/edge_data.csv", std::ios::in);
+        i = 0;
+        while(std::getline(edge_data_info,line)) {
+            std::stringstream s(line);
+            while(std::getline(s,word,',')) {
+                h_edge_data[i] = stof(word);
+                //printf("h_edge_data[%d] = %f, h_edge_dst[%d] = %d\n",i,h_edge_data[i],i,h_edge_dst[i]);
+                i++;
+            }
+
+        } 
+	printf("edge data = %d\n", i);
+
         alloc = cudaMemcpy(d_B, h_B, (2708 * 1433 *sizeof(float)), cudaMemcpyHostToDevice);
         cudaMemcpy(d_row_start, h_row_start,(2708+1) * sizeof(int) , cudaMemcpyHostToDevice);
         cudaMemcpy(d_edge_dst, h_edge_dst, (2*nnz+2708) * sizeof(int) , cudaMemcpyHostToDevice);
+	alloc = cudaMemcpy(d_edge_data, h_edge_data, ((2*nnz+2708) *sizeof(float)), cudaMemcpyHostToDevice);
+        if(alloc != cudaSuccess) {
+        printf("Feature matrix memcpy failed\n");
+        }
 	
 	int hidden_size = 32;	
 
@@ -141,16 +154,16 @@ int main() {
 	std::cout << "Dataset captured!\n";
         //Data dataset(2708,100,feature_size,label_size,label,h_B);
 	
-	int tmp_val = 40;
-        Data dataset(tmp_val,100,feature_size,label_size,label,h_B);
+	int tmp_val = 1000;
+        Data dataset(nnodes,100,feature_size,label_size,label,h_B);
         free(label);
         free(h_B);
 	std::cout << "Dataset captured!\n";
-        NeuralNetwork nn(0.02);
+        NeuralNetwork nn(0.01);
         //-----------------------------------------------
         std::cout << "Instance of Neural Network\n";
-	//nn.addLayer(new NodeAggregator("nodeagg1", d_edge_data, d_row_start, d_edge_dst, 2708, 2*nnz+2708));
-        //std::cout << "Added Nodeaggregator 1 layer\n";
+	nn.addLayer(new NodeAggregator("nodeagg1", d_edge_data, d_row_start, d_edge_dst, 2708, 2*nnz+2708));
+        std::cout << "Added Nodeaggregator 1 layer\n";
 	nn.addLayer(new LinearLayer("linear1", Shape(feature_size, hidden_size)));
         std::cout << "Added Linear layer 1\n";
 	nn.addLayer(new ReLUActivation("relu1"));
@@ -163,8 +176,8 @@ int main() {
        // nn.addLayer(new ReLUActivation("relu2"));
        // std::cout << "Added Relu layer 2\n"; 
         //-----------------------------------------------
-        //nn.addLayer(new NodeAggregator("nodeagg3", d_edge_data, d_row_start, d_edge_dst, 2708, 2*nnz+2708));
-        //std::cout << "Added Nodeaggregator layer 3\n";
+        nn.addLayer(new NodeAggregator("nodeagg3", d_edge_data, d_row_start, d_edge_dst, 2708, 2*nnz+2708));
+        std::cout << "Added Nodeaggregator layer 3\n";
 	nn.addLayer(new LinearLayer("linear3", Shape(hidden_size,label_size)));
         std::cout << "Added Linear layer 3\n";
 //	nn.addLayer(new ReLUActivation("relu3"));
@@ -176,10 +189,11 @@ int main() {
         std::cout << "Instance of Neural Network complete\n";
 	// network training
 	Matrix Y;
-    int num_train_nodes = tmp_val -1 ; //0.6 * (nnodes);
-    int num_test_nodes = 1 ; //nnodes - num_train_nodes;
+	Matrix Y_test;
+    int num_train_nodes = 0.6 * (nnodes);
+    int num_test_nodes = nnodes - num_train_nodes;
 
-	for (int epoch = 0; epoch < 500; epoch++) {
+	for (int epoch = 0; epoch < 1000; epoch++) {
 		float cost = 0.0;
 
 		Y = nn.forward(dataset.input_features, true);
@@ -192,6 +206,18 @@ int main() {
 						<< std::endl;
 		}
                 Y.freeMem();
+
+		if(epoch %10 == 0)  {
+			float accuracy = 0.0f;
+			Y_test = nn.forward(dataset.input_features, false);
+			Y_test.allocateHostMemory();
+			std::cout << "Y_test.host allocated:" << Y_test.host_allocated << "\n";
+			Y_test.copyDeviceToHost();
+			std::cout << "Y_test copied to host "<< "\n";
+			accuracy = accuracy + computeAccuracy(Y_test,dataset.input_labels, dataset.node_array, num_test_nodes);
+			Y_test.freeMem();
+			std::cout << "Accuracy: " << accuracy << std::endl;
+		}
 	}
 
         float accuracy = 0.0f;
@@ -206,6 +232,10 @@ int main() {
 //	}
         final_accuracy = accuracy;
 	// compute accuracy
+
+	for(int i=0; i<Y.shape.x*Y.shape.y; i++) {
+		printf("Final Y[%d] = %f\n", i, Y[i]);
+	}
         
 	std::cout << "Accuracy: " << final_accuracy << std::endl;
         cudaFree(d_row_start);
@@ -222,13 +252,15 @@ float computeAccuracy(const Matrix& predictions, const Matrix& targets, int *nod
 
 	for (int i = 0; i < num_test_nodes; i++) { 
         int max_class = 0;
-        int max_prediction = -99999;
+        float max_prediction  = predictions[node_array[i] * predictions.shape.y + 0];
         for (int j = 0; j < predictions.shape.y; j++) {
             if (predictions[node_array[i] * predictions.shape.y + j] > max_prediction) {
                 max_class = j;
                 max_prediction = predictions[node_array[i] * predictions.shape.y + j];
             }
         }
+	printf("max class = %d, max pred = %f\n", max_class, max_prediction);
+
         if (targets[node_array[i] * predictions.shape.y + max_class] == 1) {
             correct_predictions++;
         }

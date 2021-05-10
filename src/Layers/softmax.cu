@@ -15,28 +15,29 @@ __global__ void SoftMaxForward( float* A, float* Z,int A_x_dim, int A_y_dim){
     float sum = 0.0f;
     if(row < Z_x_dim){
 
+	/*
 	float max = A[0 + Z_y_dim * row];
        for(int i=0; i< Z_y_dim; i=i+1){
 		if(A[i +  Z_y_dim * row] > max) {
 		     max = A[i +  Z_y_dim * row];
 		}	
-	}
+	}*/
 
 	
        for(int i=0; i< Z_y_dim; i=i+1){
-           float tmp = exp(A[i +  Z_y_dim * row]);
-           Z[i + Z_y_dim * row] = tmp;
+           long double tmp = exp(A[i +  Z_y_dim * row]);
+           Z[i + Z_y_dim * row] = (float) tmp;
            sum += tmp;  
 	   if(isinf(sum)) {
-		printf("Softmax inf = %f, %f\n", tmp, A[i +  Z_y_dim * row]);
+		printf("Softmax inf = %f, %f, %lf\n", Z[i + Z_y_dim * row], A[i +  Z_y_dim * row], tmp);
 	   }
        }
 
        for(int i= 0; i < Z_y_dim; i=i+1){
            Z[i + Z_y_dim * row] /= sum;
-	   if(isnan(Z[i + Z_y_dim * row])) {
-		printf("Softmax nan = %f %f\n", Z[i + Z_y_dim * row], sum);
-	   }
+	   //if(isnan(Z[i + Z_y_dim * row])) {
+		printf("Softmax = %f\n", A[i + Z_y_dim * row]);
+	   //}
        }
 
     }

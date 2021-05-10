@@ -68,8 +68,18 @@ __global__ void linearLayerUpdateWeights(  float* W, float* dW,
 	int x = blockIdx.x * blockDim.x + threadIdx.x;
 	int y = blockIdx.y * blockDim.y + threadIdx.y;
 
+	float threshold = 100;
+
 	if( x < W_x_dim && y < W_y_dim) {
+	    //Gradient clipping 
+	     if(dW[x * W_y_dim + y] > threshold) {
+	//	dW[x * W_y_dim + y] = threshold;	
+	     }
 	    W[x * W_y_dim + y] += (-1) * (learning_rate) * dW[x * W_y_dim + y];
+	    /*
+	    if(x < 10 && y < 10) {
+	        printf("W[%d, %d] = %f, dW = %f\n", x, y, W[x * W_y_dim + y], dW[x * W_y_dim + y]);
+	    }*/
 	}
 }
 
@@ -99,12 +109,15 @@ __global__ void linearLayerUpdateBias(  float* dZ, float* b,
 										int dZ_x_dim, int dZ_y_dim,
 										int b_x_dim,
 										float learning_rate) {
-	int index = blockIdx.y * blockDim.y + threadIdx.y;
+	int index = blockIdx.x * blockDim.x + threadIdx.x;
 
 	if (index < dZ_x_dim * dZ_y_dim) {
-		int dZ_x = index % dZ_y_dim;
-		int dZ_y = index / dZ_y_dim;
-		atomicAdd(&b[dZ_y], - learning_rate * (dZ[dZ_y * dZ_y_dim + dZ_x] / dZ_y_dim));
+		int dZ_x = index / dZ_y_dim;
+		int dZ_y = index % dZ_y_dim;
+		atomicAdd(&b[dZ_y], - learning_rate * (dZ[dZ_x * dZ_y_dim + dZ_y] / dZ_y_dim));
+
+		//if(dZ_y == 0) { printf("BIAS dZ = %f, %f\n", dZ[dZ_x * dZ_y_dim + dZ_y], b[dZ_y]); }
+		//printf("bias new = %f, dZ = %f\n", b[dZ_y], dZ[dZ_x * dZ_y_dim + dZ_y]);
 	}
 }
 
@@ -190,6 +203,15 @@ void LinearLayer::initializeBiasWithZeros() {
         cudaMemset(b.data_device, 0, b.shape.x * b.shape.y* sizeof(float));
 }
 
+__global__ void print_kernel_lin(float *A, int size, std::string str) {
+	for(int i=0; i<size; i++) {
+		if(A[i] != 0.0) {
+		    printf("The value of %s[%d] = %f\n", str, i, A[i]);
+		}
+	}
+}
+
+
 Matrix& LinearLayer::forward(Matrix& A, bool training, bool freeMatrix){
 //   std::cout << " Linear forward A.x:" << A.shape.x << "\n";
 //  std::cout << " Linear forward A.y:" << A.shape.y << "\n";
@@ -200,6 +222,12 @@ Matrix& LinearLayer::forward(Matrix& A, bool training, bool freeMatrix){
    // std::cout << "Linear layer forward\n";
     //std::cout<< "Linear Layer ptr:" << A.data_device << "\n";
     this->A = A;
+
+    if(A.shape.y == 32) {
+	//printf("Printing aggregating output  = %d\n", A.shape.y);
+        //print_kernel_lin<<<1,1>>>(A.data_device, 3*A.shape.y, "A - agg out ");
+	cudaDeviceSynchronize();
+    }
     //std::cout<< "Linear Layer ptr:" << A.data_device << "\n";
     Shape Z_shape(A.shape.x,W.shape.y);
     Z.allocateCuda(Z_shape);
@@ -217,15 +245,34 @@ Matrix& LinearLayer::forward(Matrix& A, bool training, bool freeMatrix){
             A.freeMem();
 	}
      }
+
+
+    if(Z.shape.y == 32) {
+//	printf("Printing aggregating input = %d\n", Z.shape.y);
+//        print_kernel_lin<<<1,1>>>(Z.data_device, 3*Z.shape.y, "Z - agg in ");
+	cudaDeviceSynchronize();
+    }
+
     return Z;
 	
 }
 
 
-__global__ void print_kernel_lin(float *A, int size, std::string str) {
+__global__ void print_weight_sum(float *W, float *dW, int size) {
+	float w_sum = 0;
+	float dw_sum = 0;
+
+	float w_sum_mod = 0;
+	float dw_sum_mod = 0;
 	for(int i=0; i<size; i++) {
-		printf("The value of %s[%d] = %f\n", str, i, A[i]);
+		w_sum += W[i];
+		dw_sum += dW[i];
+		w_sum_mod +=   (W[i] > 0) ?  W[i] :  -W[i]; 
+		dw_sum_mod += (dW[i] > 0) ? dW[i] : -dW[i]; 
 	}
+
+	printf("The value of Weight Sum = %f, dW sum = %f\n", w_sum, dw_sum);
+	printf("The value of MOD Weight Sum = %f, dW sum = %f\n", w_sum_mod, dw_sum_mod);
 }
 
 void LinearLayer::computeAndStoreLayerOutput(Matrix& A) {
@@ -244,10 +291,15 @@ Matrix& LinearLayer::backprop(Matrix& dZ, float learning_rate, bool freeMatrix) 
 	dW.allocateCuda(W.shape); //A'.dZ
 
       //  std::cout << "Linear Layer backward\n";
+	//print_kernel_lin<<<1,1>>>(dZ.data_device, dZ.shape.x*dZ.shape.y, "dZ - pre backprop ");
 	computeAndStoreBackpropError(dZ);
-	print_kernel_lin<<<1,1>>>(dZ.data_device, 10, "dZ initially");
 	NNException::throwIfDeviceErrorOccurred("Cannot perform back propagation.");
 
+	/*
+	if(dZ.shape.y == 32) {
+	    printf("Printing dZ of lin 1 layer\n");
+	    print_kernel_lin<<<1,1>>>(dZ.data_device, dZ.shape.x*dZ.shape.y, "dZ - in backprop ");
+	}*/
 	updateBias(dZ, learning_rate);
 	NNException::throwIfDeviceErrorOccurred("Cannot perform bias update.");
         
@@ -279,17 +331,26 @@ void LinearLayer::computeAndStoreBackpropError(Matrix& dZ) {
 
 	//W: 10x7, dz: 2708x7, dA: 2708x10 
 	// So dA = dz.W'
-	runGEMM(W, dZ, dA, false, true);	
+	runGEMM(dZ, W, dA, false, true);	
 	//TODO: need to multiply dA with -1. <<< Are we sure??? -- why not do that in dZ calculation?>>>
+
+	/*
+	if(dZ.shape.y == 7) {
+		printf("Printing dA\n");
+		print_kernel_lin<<<1,1>>>(dA.data_device, dA.shape.x*dA.shape.y, "dA ");
+		cudaDeviceSynchronize();
+	}*/
+
 }
 
 void LinearLayer::updateWeights(Matrix& dZ, float learning_rate) {
 
 	//dW = A'.dZ
 	//dw: 10x7, A: 2708x10, dZ: 2708x7	
-	print_kernel_lin<<<1,1>>>(dZ.data_device, 10, "dZ pre update weight");
 	runGEMM(A, dZ, dW, true, false);	
-	print_kernel_lin<<<1,1>>>(dZ.data_device, 10, "dZ post update weight");
+
+	//print_weight_sum<<<1,1>>>(W.data_device, dW.data_device, W.shape.x*W.shape.y);
+		
 
 	//W = W - (n) * dW
 	dim3 block_size(16, 16);
@@ -307,6 +368,8 @@ void LinearLayer::updateBias(Matrix& dZ, float learning_rate) {
 	//Then b = b - (n) * dB
 	
 	//Need to write a reduction kernel for the first line
+	//print_kernel_lin<<<1,1>>>(dZ.data_device, dZ.shape.x*dZ.shape.y, "dZ - pre bias ");
+
 
 	dim3 block_size(256);
 	dim3 num_of_blocks( (dZ.shape.y * dZ.shape.x + block_size.x - 1) / block_size.x);
@@ -314,6 +377,9 @@ void LinearLayer::updateBias(Matrix& dZ, float learning_rate) {
 							     b.data_device,
 							     dZ.shape.x, dZ.shape.y,
 							     b.shape.x, learning_rate);
+
+	//printf("Bias X: %d, Y: %d\n", b.shape.x, b.shape.y);
+	//print_kernel_lin<<<1,1>>>(b.data_device, b.shape.x*b.shape.y, "bias");
 }
 
 int LinearLayer::getXdim() const {

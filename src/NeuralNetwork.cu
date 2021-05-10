@@ -44,7 +44,8 @@ void NeuralNetwork::backprop(Matrix predictions, Matrix target, int* node_array_
 
 	for (auto it = this->layers.rbegin(); it != this->layers.rend(); it++) {
                 if(cnt == 1 )
-                    freeMatrix = false;
+                    //freeMatrix = false;
+                    freeMatrix = true;
                 else
                     freeMatrix = true;
 		error = (*it)->backprop(error, learning_rate,freeMatrix);

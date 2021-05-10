@@ -12,7 +12,9 @@ __global__ void ReluActivationForward(float* Z, float* A,float* Stored_Z, int Z_
 }
 
 __global__ void ReluActivationBackprop(float* Z, float* dA, float* dZ, int Z_x_dim, int Z_y_dim) {
-
+	
+	//int nnodes = 2708;
+	//int num_test_nodes = nnodes - (0.6*nnodes);
 	int index = blockIdx.x * blockDim.x + threadIdx.x;
 	if (index < Z_x_dim * Z_y_dim) {
 		if (Z[index] > 0) {
@@ -21,6 +23,11 @@ __global__ void ReluActivationBackprop(float* Z, float* dA, float* dZ, int Z_x_d
 		else {
 			dZ[index] = 0;
 		}
+		//Adding it to quickly see if I can set output of node agg 0 for test nodes
+		/*
+		if(index < num_test_nodes) {
+			dZ[index] = 0;
+		}*/
 	}
 	/*
 	if((row > 2700)) {

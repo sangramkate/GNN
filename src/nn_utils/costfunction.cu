@@ -13,9 +13,10 @@ __global__ void binaryCrossEntropyCost(float* predictions, float* target, int si
             for(int i = 0 ; i < prediction_y; i++){
                 int index_train = node_array_device[index];
 		    partial_cost += (target[index_train*prediction_y + i] * logf(predictions[index_train*prediction_y + i]+1e-15));
+		    /*
 		    if(isnan(partial_cost)) {
 			printf("Pred = %f, log pred = %f\n", predictions[index_train*prediction_y + i], logf(predictions[index_train*prediction_y + i]+1e-15));
-		    }
+		    }*/
 		    atomicAdd(cost, -partial_cost);
 	    }
 	}
@@ -35,8 +36,8 @@ __global__ void dBinaryCrossEntropyCost(float* predictions, float* target, float
                     int index_train = node_array_device[index];
                      // dY[index_train*prediction_y + i] = (-target[index_train*prediction_y + i] + predictions[index_train * prediction_y + i] ) / 
                      //                                   ((1 - predictions[index_train * prediction_y + i]) * predictions[index_train * prediction_y + i]);
-		    dY[index_train*prediction_y + i] = -target[index_train * prediction_y + i]+predictions[index_train * prediction_y + i];
-		    printf("\nNode = %d, label = %d, dY = %f, pred = %f\n", index, i, dY[index_train*prediction_y + i], predictions[index_train * prediction_y + i]);
+		    dY[index_train*prediction_y + i] = (-target[index_train * prediction_y + i]+predictions[index_train * prediction_y + i]);
+		    //printf("\nNode = %d, label = %d, dY = %f, pred = %f\n", index, i, dY[index_train*prediction_y + i], predictions[index_train * prediction_y + i]);
                     if(index < num_test_nodes + 5) {
                          flag = 1;
                          printf("%f:%f, ",target[index_train * prediction_y + i],predictions[index_train * prediction_y + i]);

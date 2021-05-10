@@ -23,7 +23,7 @@ Matrix& NodeAggregator::forward(Matrix& A,bool training,bool freeMatrix){
 	return Z;
 }
 
-Matrix& NodeAggregator::backprop(Matrix& dZ, float learning_rate) {
+Matrix& NodeAggregator::backprop(Matrix& dZ, float learning_rate, bool freeMatrix) {
 	this->dZ = dZ;
 	//std::cout<<"Nodeagg backward\n";
 	dA.allocateCuda(dZ.shape);
