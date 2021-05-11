@@ -28,15 +28,16 @@ __global__ void SoftMaxForward( float* A, float* Z,int A_x_dim, int A_y_dim){
            long double tmp = exp(A[i +  Z_y_dim * row]);
            Z[i + Z_y_dim * row] = (float) tmp;
            sum += tmp;  
+	/*
 	   if(isinf(sum)) {
 		printf("Softmax inf = %f, %f, %lf\n", Z[i + Z_y_dim * row], A[i +  Z_y_dim * row], tmp);
-	   }
+	   }*/
        }
 
        for(int i= 0; i < Z_y_dim; i=i+1){
            Z[i + Z_y_dim * row] /= sum;
 	   //if(isnan(Z[i + Z_y_dim * row])) {
-		printf("Softmax = %f\n", A[i + Z_y_dim * row]);
+		//printf("Softmax = %f\n", A[i + Z_y_dim * row]);
 	   //}
        }
 
@@ -53,9 +54,6 @@ __global__ void SoftMaxBackprop( float* dZ, float*dA, float* A, int dZ_x_dim, in
   	if (row < dA_x_dim) {
             for(int i=0; i< dA_y_dim; i=i+1){
                 dA[i + dA_y_dim * row] = A[i + dA_y_dim * row] * (1-A[i + dA_y_dim * row])  *  dZ[i + dA_y_dim * row];
-		if((row > 2700)) {
-			printf("Softmax x = %d, y = %d, dZ = %f, dA = %f\n", row, i, dZ[i + dA_y_dim * row], dA[i + dA_y_dim * row]); 
-		}
             }
         }
 }

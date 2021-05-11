@@ -195,7 +195,7 @@ int main() {
 	// network training
 	Matrix Y;
 	Matrix Y_test;
-	for (int epoch = 0; epoch < 1000; epoch++) {
+	for (int epoch = 0; epoch < 200; epoch++) {
 		float cost = 0.0;
 
 		Y = nn.forward(dataset.input_features, true);
@@ -236,7 +236,7 @@ int main() {
 	// compute accuracy
 
 	for(int i=0; i<Y.shape.x*Y.shape.y; i++) {
-		printf("Final Y[%d] = %f\n", i, Y[i]);
+		//printf("Final Y[%d] = %f\n", i, Y[i]);
 	}
         
 	std::cout << "Accuracy: " << final_accuracy << std::endl;
@@ -261,7 +261,7 @@ float computeAccuracy(const Matrix& predictions, const Matrix& targets, int *nod
                 max_prediction = predictions[node_array[i] * predictions.shape.y + j];
             }
         }
-	printf("max class = %d, max pred = %f\n", max_class, max_prediction);
+	//printf("max class = %d, max pred = %f\n", max_class, max_prediction);
 
         if (targets[node_array[i] * predictions.shape.y + max_class] == 1) {
             correct_predictions++;

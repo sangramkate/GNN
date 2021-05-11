@@ -38,14 +38,15 @@ __global__ void dBinaryCrossEntropyCost(float* predictions, float* target, float
                      //                                   ((1 - predictions[index_train * prediction_y + i]) * predictions[index_train * prediction_y + i]);
 		    dY[index_train*prediction_y + i] = (-target[index_train * prediction_y + i]+predictions[index_train * prediction_y + i]);
 		    //printf("\nNode = %d, label = %d, dY = %f, pred = %f\n", index, i, dY[index_train*prediction_y + i], predictions[index_train * prediction_y + i]);
+		/*
                     if(index < num_test_nodes + 5) {
                          flag = 1;
                          printf("%f:%f, ",target[index_train * prediction_y + i],predictions[index_train * prediction_y + i]);
-                    } 
+                    } */
                 }
-             if(flag == 1){
+             /*if(flag == 1){
                printf("\n");
-             }
+             }*/
 	}
 }
 
