@@ -27,6 +27,15 @@ Data::Data(int num_nodes, size_t batch_size,int feature_size, int label_size, in
         std::cout << "input_labels.x:" << input_labels.shape.x << "\n";
         std::cout << "input_labels.y:" << input_labels.shape.y << "\n";
 	
+        Shape train_input_shape(batch_size,feature_size);
+        train_input_features.allocateMemoryIfNotAllocated(train_input_shape);
+        std::cout << "input_features.x:" << input_features.shape.x << "\n";
+        std::cout << "input_features.y:" << input_features.shape.y << "\n";
+
+        Shape train_input_label_shape(batch_size,label_size);
+        train_input_labels.allocateMemoryIfNotAllocated(train_input_label_shape);
+        std::cout << "input_labels.x:" << input_labels.shape.x << "\n";
+        std::cout << "input_labels.y:" << input_labels.shape.y << "\n";
 
         //Randomize an array consisting of all the nodes
 
@@ -65,6 +74,24 @@ Data::Data(int num_nodes, size_t batch_size,int feature_size, int label_size, in
             }
         }
         input_labels.copyHostToDevice();
+
+
+        for (int i = num_nodes-batch_size; i < num_nodes; i++) {
+	    for (int j = 0; j < feature_size; j++) {
+                train_input_features[(i-(num_nodes-batch_size)) * feature_size + j ] = feature [i *(feature_size) + j];
+               // if(feature[i * feature_size + j]){
+               //    std::cout << "feature[" << i * (feature_size) + j << "]"<<feature[i * (feature_size) + j] << "\n"; 
+               //    std::cout << "input features[" << i * (feature_size) + j << "]" << input_features[i * (feature_size) + j] << "\n"; 
+               // }
+            }
+        }
+        input_features.copyHostToDevice();
+	for (int i = num_nodes-batch_size; i < num_nodes; i++) {
+	    for (int j = 0; j < (int)(label_size); j++) {
+                train_input_labels[(i-(num_nodes-batch_size))*label_size + j] = (float) label[i*label_size + j];
+            }
+        }
+        train_input_labels.copyHostToDevice();
  /*
 	for (int i = 0; i < num_training_batches+1; i++) {
 // adding the input features into a Matrix form and pushing it.

@@ -155,7 +155,12 @@ int main() {
         //Data dataset(2708,100,feature_size,label_size,label,h_B);
 	
 	int tmp_val = 1000;
-        Data dataset(nnodes,100,feature_size,label_size,label,h_B);
+        int num_train_nodes = 0.6 * (nnodes);
+        int num_test_nodes = nnodes - num_train_nodes;
+
+        Data dataset(nnodes,num_train_nodes,feature_size,label_size,label,h_B);
+        printf("num_train_nodes = %d\n", num_train_nodes);
+        printf("features shape_x =%d label shape_x=%d\n",dataset.train_input_features.shape.x, dataset.train_input_labels.shape.x);
         free(label);
         free(h_B);
 	std::cout << "Dataset captured!\n";
@@ -190,9 +195,6 @@ int main() {
 	// network training
 	Matrix Y;
 	Matrix Y_test;
-    int num_train_nodes = 0.6 * (nnodes);
-    int num_test_nodes = nnodes - num_train_nodes;
-
 	for (int epoch = 0; epoch < 1000; epoch++) {
 		float cost = 0.0;
 
