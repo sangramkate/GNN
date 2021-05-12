@@ -300,7 +300,7 @@ float computeAccuracy(const Matrix& predictions, const Matrix& targets, int *nod
                 max_prediction = predictions[node_array[i] * predictions.shape.y + j];
             }
         }
-	//printf("max class = %d, max pred = %f\n", max_class, max_prediction);
+//	printf("max class = %d, max pred = %f\n", max_class, max_prediction);
 
         if (targets[node_array[i] * predictions.shape.y + max_class] == 1) {
             correct_predictions++;

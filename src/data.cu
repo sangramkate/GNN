@@ -44,7 +44,7 @@ Data::Data(int num_nodes, size_t batch_size,int feature_size, int label_size, in
             node_array[i] = i;
         }   
 
-	/*
+	
         srand(time(NULL));
         int i;
         for (i = num_nodes - 1; i > 0; i--) {
@@ -52,7 +52,7 @@ Data::Data(int num_nodes, size_t batch_size,int feature_size, int label_size, in
             int temp = node_array[i];
             node_array[i] = node_array[j];
             node_array[j] = temp;
-        }*/
+        }
         cudaMalloc((void**) &node_array_device,sizeof(int)*num_nodes);
         cudaMemcpy(node_array_device,node_array,sizeof(int)*num_nodes,cudaMemcpyHostToDevice);
 

@@ -43,10 +43,15 @@ for line in pubmed_content:
             data_hash[node]["label"] = [0,0,1]
         data_hash[node]["features"] = [0] * 500
         #print(content[-1])
-        features_arr = content[-1].split('=')
-        if (features_arr[0] == "summary"):
-            for feat in features_arr[1].split(','):
-                data_hash[node]["features"][features[feat]] = 1
+        for feat in content[2:]:
+            if re.search("(w-.*)=(.*)",feat):
+                feat_name = re.search("(w-.*)=(.*)",feat).group(1) 
+                val = re.search("(.*)=(.*)",feat).group(2)
+                data_hash[node]["features"][features[feat_name]] = val
+        #features_arr = content[-1].split('=')
+        #if (features_arr[0] == "summary"):
+        #    for feat in features_arr[1].split(','):
+        #        data_hash[node]["features"][features[feat]] = 1
         data_hash[node]["edges"] = [int(count)] #added self loop
         count = count + 1
 
