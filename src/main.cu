@@ -19,15 +19,48 @@
 
 float computeAccuracy(const Matrix& predictions, const Matrix& targets, int *node_array, int num_test_nodes);
 
-int main() {
+int main(int argc, char **argv) {
+
+
+//	std::string dataset_name = "Pubmed-Diabetes";
+	std::string dataset_name = argv[1];
+
+	std::fstream data_info;
+	data_info.open("datasets/" + dataset_name + "/data_info.csv", std::ios::in);	
+        std::string line, word, temp;
+
+        int* dataset_meta = (int *) malloc(4*sizeof(int));
+
+
+	int nnodes, nnz, nfeatures, nlabels;
+
+        int i = 0;
+        while(std::getline(data_info,line)) {
+            std::stringstream s(line);
+            while(std::getline(s,word,',')) {
+                dataset_meta[i] = stoi(word);
+                i++;
+            }
+
+        }
+
+        std::cout << i << "\n";
+
+	nnodes = dataset_meta[0];
+	nnz = dataset_meta[1];
+	nfeatures = dataset_meta[2];
+	nlabels = dataset_meta[3];
+
+	std::cout << "nnodes: " << nnodes << ", nedges: " << nnz << std::endl;
+	std::cout << "nlabels: " << nlabels << ", nfeatures: " << nfeatures << std::endl;
+
 
         cudaSetDevice(0);
         //std::fstream myfile("/net/ohm/export/iss/inputs/Learning/cora-labels.txt", std::ios_base::in);
         std::fstream label_info;
-        label_info.open("datasets/cora/label_val.csv", std::ios::in);
-        int* label = (int *) malloc(2708*7*sizeof(int));
-        int i = 0;
-        std::string line, word, temp;
+        label_info.open("datasets/" + dataset_name + "/label_val.csv", std::ios::in);
+        int* label = (int *) malloc(nnodes*nlabels*sizeof(int));
+        i = 0;
         while(std::getline(label_info,line)) {
             std::stringstream s(line);
             while(std::getline(s,word,',')) {
@@ -43,49 +76,42 @@ int main() {
 	CostFunction bce_cost;
 
 //Code for extracting data from dataset files starts here
-        CSRGraph graph;
-        char gr_file[]="cora.gr";
-        char binFile[]="cora-feat.bin";
-        int nnodes = 0,nedges = 0;
-        int feature_size = 1433;
-        int label_size = 7;
-        graph.read(gr_file,&nnodes,&nedges);
         int* d_row_start;
         int* d_edge_dst;
         float* d_edge_data;
         cudaError_t alloc;
-        int nnz = 5429;
-        printf("2*nnz+2708 = %d\n",2*nnz+2708);
-        int* h_row_start = (int*)malloc((2708+1) * sizeof(int));
-        int* h_edge_dst = (int*)malloc((2*nnz+2708) * sizeof(int));
-        alloc = cudaMalloc(&d_row_start,(2708+1) * sizeof(int));
+        printf("2*nnz+nnodes = %d\n",2*nnz+nnodes);
+
+        int* h_row_start = (int*)malloc((nnodes+1) * sizeof(int));
+        int* h_edge_dst = (int*)malloc((2*nnz+nnodes) * sizeof(int));
+        alloc = cudaMalloc(&d_row_start,(nnodes+1) * sizeof(int));
         if(alloc != cudaSuccess) {
             printf("malloc for row info failed\n");
         }
-        alloc = cudaMalloc(&d_edge_dst,(2*nnz+2708) * sizeof(int));
+        alloc = cudaMalloc(&d_edge_dst,(2*nnz+nnodes) * sizeof(int));
         if(alloc != cudaSuccess) {
             printf("malloc for col info failed\n");
         }
-        alloc = cudaMalloc(&d_edge_data,(2*nnz+2708) * sizeof(float));
+        alloc = cudaMalloc(&d_edge_data,(2*nnz+nnodes) * sizeof(float));
         if(alloc != cudaSuccess) {
             printf("malloc failed \n");
         }
         float* d_B;
 
-        float* h_B = (float *)malloc((2708) * feature_size * sizeof(float));
+        float* h_B = (float *)malloc((nnodes) * nfeatures * sizeof(float));
 	if(h_B == NULL)
 	    printf("h_B malloc failed\n");
-        alloc = cudaMalloc(&d_B, (2708) * feature_size * sizeof(float));
+        alloc = cudaMalloc(&d_B, (nnodes) * nfeatures * sizeof(float));
         if(alloc != cudaSuccess) {
             printf("cudaMalloc failed for features matrix\n");
         }
 
-	float* h_edge_data = (float *)malloc((2*nnz+2708) * sizeof(float));
+	float* h_edge_data = (float *)malloc((2*nnz+nnodes) * sizeof(float));
 
 //Filling up the sparse matrix info
-        //graph.readFromGR(gr_file , binFile , d_row_start, d_edge_dst , d_B, feature_size);
+        //graph.readFromGR(gr_file , binFile , d_row_start, d_edge_dst , d_B, nfeatures);
         std::fstream feature_info;
-        feature_info.open("datasets/cora/feature_val.csv", std::ios::in);
+        feature_info.open("datasets/" + dataset_name + "/feature_val.csv", std::ios::in);
         i = 0;
         while(std::getline(feature_info,line)) {
             std::stringstream s(line);
@@ -98,7 +124,7 @@ int main() {
 
         printf("node * feature = %d\n",i);
         std::fstream row_start_info;
-        row_start_info.open("datasets/cora/row_start.csv", std::ios::in);
+        row_start_info.open("datasets/" + dataset_name + "/row_start.csv", std::ios::in);
         i = 0;
         while(std::getline(row_start_info,line)) {
             std::stringstream s(line);
@@ -111,7 +137,7 @@ int main() {
         printf("node + 1  = %d\n",i);
 
         std::fstream edge_dst_info;
-        edge_dst_info.open("datasets/cora/edge_dst.csv", std::ios::in);
+        edge_dst_info.open("datasets/" + dataset_name + "/edge_dst.csv", std::ios::in);
         i = 0;
         while(std::getline(edge_dst_info,line)) {
             std::stringstream s(line);
@@ -125,7 +151,7 @@ int main() {
         printf("egdges = %d\n",i);
 
         std::fstream edge_data_info;
-        edge_data_info.open("datasets/cora/edge_data.csv", std::ios::in);
+        edge_data_info.open("datasets/" + dataset_name + "/edge_data.csv", std::ios::in);
         i = 0;
         while(std::getline(edge_data_info,line)) {
             std::stringstream s(line);
@@ -138,10 +164,10 @@ int main() {
         } 
 	printf("edge data = %d\n", i);
 
-        alloc = cudaMemcpy(d_B, h_B, (2708 * 1433 *sizeof(float)), cudaMemcpyHostToDevice);
-        cudaMemcpy(d_row_start, h_row_start,(2708+1) * sizeof(int) , cudaMemcpyHostToDevice);
-        cudaMemcpy(d_edge_dst, h_edge_dst, (2*nnz+2708) * sizeof(int) , cudaMemcpyHostToDevice);
-	alloc = cudaMemcpy(d_edge_data, h_edge_data, ((2*nnz+2708) *sizeof(float)), cudaMemcpyHostToDevice);
+        alloc = cudaMemcpy(d_B, h_B, (nnodes * nfeatures *sizeof(float)), cudaMemcpyHostToDevice);
+        cudaMemcpy(d_row_start, h_row_start,(nnodes+1) * sizeof(int) , cudaMemcpyHostToDevice);
+        cudaMemcpy(d_edge_dst, h_edge_dst, (2*nnz+nnodes) * sizeof(int) , cudaMemcpyHostToDevice);
+	alloc = cudaMemcpy(d_edge_data, h_edge_data, ((2*nnz+nnodes) *sizeof(float)), cudaMemcpyHostToDevice);
         if(alloc != cudaSuccess) {
         printf("Feature matrix memcpy failed\n");
         }
@@ -152,38 +178,37 @@ int main() {
     	printf("Feature matrix memcpy failed\n");
 	} 
 	std::cout << "Dataset captured!\n";
-        //Data dataset(2708,100,feature_size,label_size,label,h_B);
 	
 	int tmp_val = 1000;
         int num_train_nodes = 0.6 * (nnodes);
         int num_test_nodes = nnodes - num_train_nodes;
 
-        Data dataset(nnodes,num_train_nodes,feature_size,label_size,label,h_B);
+        Data dataset(nnodes,num_train_nodes,nfeatures,nlabels,label,h_B);
         printf("num_train_nodes = %d\n", num_train_nodes);
         printf("features shape_x =%d label shape_x=%d\n",dataset.train_input_features.shape.x, dataset.train_input_labels.shape.x);
         free(label);
         free(h_B);
 	std::cout << "Dataset captured!\n";
-        NeuralNetwork nn(0.001);
+        NeuralNetwork nn(0.0015);
         //-----------------------------------------------
         std::cout << "Instance of Neural Network\n";
-	nn.addLayer(new NodeAggregator("nodeagg1", d_edge_data, d_row_start, d_edge_dst, 2708, 2*nnz+2708));
+	nn.addLayer(new NodeAggregator("nodeagg1", d_edge_data, d_row_start, d_edge_dst, nnodes, 2*nnz+nnodes));
         std::cout << "Added Nodeaggregator 1 layer\n";
-	nn.addLayer(new LinearLayer("linear1", Shape(feature_size, hidden_size)));
+	nn.addLayer(new LinearLayer("linear1", Shape(nfeatures, hidden_size)));
         std::cout << "Added Linear layer 1\n";
 	nn.addLayer(new ReLUActivation("relu1"));
         std::cout << "Added relu layer 1\n";
         //-----------------------------------------------
        // nn.addLayer(new NodeAggregator("nodeagg2", d_edge_data, d_row_start, d_edge_dst, 2708, nnz));
        // std::cout << "Added Nodeaggregator layer 2\n";
-       // nn.addLayer(new LinearLayer("linear2", Shape(label_size,label_size)));
+       // nn.addLayer(new LinearLayer("linear2", Shape(nlabels,nlabels)));
        // std::cout << "Added Linear layer 2\n";
        // nn.addLayer(new ReLUActivation("relu2"));
        // std::cout << "Added Relu layer 2\n"; 
         //-----------------------------------------------
-        nn.addLayer(new NodeAggregator("nodeagg3", d_edge_data, d_row_start, d_edge_dst, 2708, 2*nnz+2708));
+        nn.addLayer(new NodeAggregator("nodeagg3", d_edge_data, d_row_start, d_edge_dst, nnodes, 2*nnz+nnodes));
         std::cout << "Added Nodeaggregator layer 3\n";
-	nn.addLayer(new LinearLayer("linear3", Shape(hidden_size,label_size)));
+	nn.addLayer(new LinearLayer("linear3", Shape(hidden_size,nlabels)));
         std::cout << "Added Linear layer 3\n";
 //	nn.addLayer(new ReLUActivation("relu3"));
 //        std::cout << "Added Relu layer 3\n"; 

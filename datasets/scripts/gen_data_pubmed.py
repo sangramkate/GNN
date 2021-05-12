@@ -65,6 +65,14 @@ for line in pubmed_cites:
 
 print(edge)
 
+
+with open("../Pubmed-Diabetes/data_info.csv", "w") as info_file:
+    info_file.write(str((count)) + ",")
+    info_file.write(str((edge)) + ",")
+    info_file.write("500,")
+    info_file.write(str((3)) + "\n")
+
+
 row_start = open("../Pubmed-Diabetes/row_start.csv","w")
 edge_dst = open("../Pubmed-Diabetes/edge_dst.csv","w")
 edge_data = open("../Pubmed-Diabetes/edge_data.csv", "w") #degree matrix inverse

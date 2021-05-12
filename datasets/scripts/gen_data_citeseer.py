@@ -48,12 +48,19 @@ for line in citeseer_cites:
     if cite[0] in data_hash:
         if cite[1] in node_count_map:
             data_hash[cite[0]]["edges"].append(int(node_count_map[cite[1]])) if int(node_count_map[cite[1]]) not in data_hash[cite[0]]["edges"] else data_hash[cite[0]]["edges"]
+            edge = edge + 1
     if cite[1] in data_hash:
         if cite[0] in node_count_map:
             data_hash[cite[1]]["edges"].append(int(node_count_map[cite[0]])) if int(node_count_map[cite[0]]) not in data_hash[cite[1]]["edges"] else data_hash[cite[1]]["edges"]
-    edge = edge + 1
 
 print(edge)
+
+
+with open("../citeseer/data_info.csv", "w") as info_file:
+    info_file.write(str((count)) + ",")
+    info_file.write(str((edge)) + ",")
+    info_file.write("3703,")
+    info_file.write(str((6)) + "\n")
 
 
 
