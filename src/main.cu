@@ -164,7 +164,7 @@ int main() {
         free(label);
         free(h_B);
 	std::cout << "Dataset captured!\n";
-        NeuralNetwork nn(0.01);
+        NeuralNetwork nn(0.001);
         //-----------------------------------------------
         std::cout << "Instance of Neural Network\n";
 	nn.addLayer(new NodeAggregator("nodeagg1", d_edge_data, d_row_start, d_edge_dst, 2708, 2*nnz+2708));
@@ -213,9 +213,9 @@ int main() {
 			float accuracy = 0.0f;
 			Y_test = nn.forward(dataset.input_features, false);
 			Y_test.allocateHostMemory();
-			std::cout << "Y_test.host allocated:" << Y_test.host_allocated << "\n";
+			//std::cout << "Y_test.host allocated:" << Y_test.host_allocated << "\n";
 			Y_test.copyDeviceToHost();
-			std::cout << "Y_test copied to host "<< "\n";
+			//std::cout << "Y_test copied to host "<< "\n";
 			accuracy = accuracy + computeAccuracy(Y_test,dataset.input_labels, dataset.node_array, num_test_nodes);
 			Y_test.freeMem();
 			std::cout << "Accuracy: " << accuracy << std::endl;

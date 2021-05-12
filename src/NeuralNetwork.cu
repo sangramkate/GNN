@@ -25,7 +25,7 @@ Matrix NeuralNetwork::forward(Matrix X, bool training) {
                 else
                     freeMatrix = true;
 		Z = layer->forward(Z,training,freeMatrix);
-                cudaDeviceSynchronize();
+                NNException::throwIfDeviceErrorOccurred("Error found in NN forward");
 	        cnt++;
         }
 
@@ -40,7 +40,7 @@ void NeuralNetwork::backprop(Matrix predictions, Matrix target, int* node_array_
         //std::cout << "Error.x = " << error.shape.x << "\n";
         //std::cout << "Error.y = " << error.shape.y << "\n";
         bool freeMatrix;
-        int cnt = 4;
+        int cnt = 6;
 
 	for (auto it = this->layers.rbegin(); it != this->layers.rend(); it++) {
                 if(cnt == 1 )
@@ -49,7 +49,7 @@ void NeuralNetwork::backprop(Matrix predictions, Matrix target, int* node_array_
                 else
                     freeMatrix = true;
 		error = (*it)->backprop(error, learning_rate,freeMatrix);
-                cudaDeviceSynchronize();
+                NNException::throwIfDeviceErrorOccurred("Error found in NN backprop");
 	        cnt--;
 	}
         //error.freeMem();

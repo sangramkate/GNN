@@ -232,11 +232,6 @@ Matrix& LinearLayer::forward(Matrix& A, bool training, bool freeMatrix){
     //std::cout<< "Linear Layer ptr:" << A.data_device << "\n";
     this->A = A;
 
-    if(A.shape.y == 32) {
-	//printf("Printing aggregating output  = %d\n", A.shape.y);
-        //print_kernel_lin<<<1,1>>>(A.data_device, 3*A.shape.y, "A - agg out ");
-	cudaDeviceSynchronize();
-    }
     //std::cout<< "Linear Layer ptr:" << A.data_device << "\n";
     Shape Z_shape(A.shape.x,W.shape.y);
     Z.allocateCuda(Z_shape);
@@ -254,13 +249,6 @@ Matrix& LinearLayer::forward(Matrix& A, bool training, bool freeMatrix){
             A.freeMem();
 	}
      }
-
-
-    if(Z.shape.y == 32) {
-//	printf("Printing aggregating input = %d\n", Z.shape.y);
-//        print_kernel_lin<<<1,1>>>(Z.data_device, 3*Z.shape.y, "Z - agg in ");
-	cudaDeviceSynchronize();
-    }
 
     return Z;
 	

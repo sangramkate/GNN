@@ -258,7 +258,9 @@ if(alloc != cudaSuccess) {
 
 	cusparseStatus_t result;
 	cusparseCreate(&cusparse1);
-	result = cusparseScsrmm(cusparse1,CUSPARSE_OPERATION_NON_TRANSPOSE, m, n , m, nnz, alpha, descrA, nnz_data, row, col , d_B, m , beta , d_C, m);
+	//A : mxn, B: mxm, C: mxn
+	result = cusparseSgemmi(cusparse1, n, m , m, nnz, alpha, d_B, n, nnz_data,row, col, beta, d_C, n);
+
 	if(result != CUSPARSE_STATUS_SUCCESS) {
 	    printf("Cusparse failed\n");
 	}
