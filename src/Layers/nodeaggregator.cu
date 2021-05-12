@@ -19,7 +19,7 @@ __global__ void print_kernel_agg(float *A, int size, std::string str) {
 		}
 	}
 }
-
+/*
 
 __global__ void print_kernel_agg(float* A, int size, std::string str) {
 
@@ -37,7 +37,7 @@ __global__ void print_kernel_agg(float* A, int size, std::string str) {
     }
 }
 
-
+*/
 __global__
 void  agg(float* nnz_data, int* row, int* col, float* d_B, float* d_C, int FV_size, int m, int nnz) {
     float val;
