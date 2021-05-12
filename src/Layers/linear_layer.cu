@@ -7,6 +7,8 @@
 #include "linear_layer.hh"
 #include "nn_exception.hh"
 
+#define LEARNING_RATE 0.01
+
 __global__ void linearLayerForward( float* W, float* A, float* Z, float* b,
                                                                            int W_x_dim, int W_y_dim,
                                                                            int A_x_dim, int A_y_dim){
@@ -35,9 +37,13 @@ __global__ void linearLayerForwardAddBias( float* Z, float* bias, int numFeature
     //Add Z: #nodes * #labels , b: labels * 1 (or 1 * labels) doesn't matter
   
     //APARNA TODO: maybe doing an inner loop where we process > 1 node per CTA will help  -- will reduce launch overhead
+
+    /*
     for(int feature = threadIdx.x ; feature < numFeatures; feature += blockDim.x) {
 	Z[blockIdx.x * numFeatures + feature] = Z[blockIdx.x * numFeatures + feature] + bias[feature];
-    }
+    }*/
+	
+    Z[blockIdx.x * numFeatures + threadIdx.x] = Z[blockIdx.x * numFeatures + threadIdx.x] + bias[threadIdx.x];
     
 }
 
@@ -68,18 +74,8 @@ __global__ void linearLayerUpdateWeights(  float* W, float* dW,
 	int x = blockIdx.x * blockDim.x + threadIdx.x;
 	int y = blockIdx.y * blockDim.y + threadIdx.y;
 
-	float threshold = 100;
-
 	if( x < W_x_dim && y < W_y_dim) {
-	    //Gradient clipping 
-	     if(dW[x * W_y_dim + y] > threshold) {
-	//	dW[x * W_y_dim + y] = threshold;	
-	     }
 	    W[x * W_y_dim + y] += (-1) * (learning_rate) * dW[x * W_y_dim + y];
-	    /*
-	    if(x < 10 && y < 10) {
-	        printf("W[%d, %d] = %f, dW = %f\n", x, y, W[x * W_y_dim + y], dW[x * W_y_dim + y]);
-	    }*/
 	}
 }
 
@@ -110,14 +106,27 @@ __global__ void linearLayerUpdateBias(  float* dZ, float* b,
 										int b_x_dim,
 										float learning_rate) {
 	int index = blockIdx.x * blockDim.x + threadIdx.x;
+	int tid = threadIdx.x;
+
+	//Setting to a high value
+	extern __shared__ float buffer[];
+	
+	//Assuming #of output features > # of threads
+	if(tid < dZ_y_dim) {
+		buffer[tid] = 0;
+	}
+	__syncthreads();
 
 	if (index < dZ_x_dim * dZ_y_dim) {
 		int dZ_x = index / dZ_y_dim;
 		int dZ_y = index % dZ_y_dim;
-		atomicAdd(&b[dZ_y], - learning_rate * (dZ[dZ_x * dZ_y_dim + dZ_y] / dZ_y_dim));
+		atomicAdd(&buffer[dZ_y], dZ[dZ_x * dZ_y_dim + dZ_y]);
+	}
 
-		//if(dZ_y == 0) { printf("BIAS dZ = %f, %f\n", dZ[dZ_x * dZ_y_dim + dZ_y], b[dZ_y]); }
-		//printf("bias new = %f, dZ = %f\n", b[dZ_y], dZ[dZ_x * dZ_y_dim + dZ_y]);
+	__syncthreads();
+
+	if(tid < dZ_y_dim) {
+		atomicAdd(&b[tid], -learning_rate*buffer[tid]/dZ_y_dim);
 	}
 }
 
@@ -279,8 +288,7 @@ void LinearLayer::computeAndStoreLayerOutput(Matrix& A) {
 
 	runGEMM(A, W, Z, false, false);	
 	//Num CTAs = #nodes, #threads = min(256, numFeatures)
-	int n = W.shape.y;
-	int threadsPerBlock = std::min(256, n);
+	int threadsPerBlock = std::min(256, (int) W.shape.y);
 	linearLayerForwardAddBias<<<(Z.shape.x + threadsPerBlock - 1)/threadsPerBlock, threadsPerBlock>>>(Z.data_device, b.data_device, Z.shape.y);
 	
 }
@@ -350,7 +358,8 @@ void LinearLayer::updateWeights(Matrix& dZ, float learning_rate) {
 	runGEMM(A, dZ, dW, true, false);	
 
 	//print_weight_sum<<<1,1>>>(W.data_device, dW.data_device, W.shape.x*W.shape.y);
-		
+	
+	//Weight size is 1433x16 and 16x7	
 
 	//W = W - (n) * dW
 	dim3 block_size(16, 16);
@@ -371,9 +380,9 @@ void LinearLayer::updateBias(Matrix& dZ, float learning_rate) {
 	//print_kernel_lin<<<1,1>>>(dZ.data_device, dZ.shape.x*dZ.shape.y, "dZ - pre bias ");
 
 
-	dim3 block_size(256);
+	dim3 block_size(512);
 	dim3 num_of_blocks( (dZ.shape.y * dZ.shape.x + block_size.x - 1) / block_size.x);
-	linearLayerUpdateBias<<<num_of_blocks, block_size>>>(dZ.data_device,
+	linearLayerUpdateBias<<<num_of_blocks, block_size, dZ.shape.y>>>(dZ.data_device,
 							     b.data_device,
 							     dZ.shape.x, dZ.shape.y,
 							     b.shape.x, learning_rate);
