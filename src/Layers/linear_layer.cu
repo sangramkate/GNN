@@ -9,6 +9,40 @@
 
 #define LEARNING_RATE 0.01
 
+__global__ void ReluActivationForward(float* Z, float* A,float* Stored_Z, int Z_x_dim, int Z_y_dim) {
+
+	int index = blockIdx.x * blockDim.x + threadIdx.x;
+
+	if (index < Z_x_dim * Z_y_dim) {
+		A[index] = fmaxf(Z[index], 0);
+                Stored_Z[index] = A[index];
+	}
+}
+
+
+__global__ void ReluActivationBackprop(float* Z, float* dA, float* dZ, int Z_x_dim, int Z_y_dim) {
+	
+	//int nnodes = 2708;
+	//int num_test_nodes = nnodes - (0.6*nnodes);
+	int index = blockIdx.x * blockDim.x + threadIdx.x;
+	if (index < Z_x_dim * Z_y_dim) {
+		if (Z[index] > 0) {
+			dZ[index] = dA[index];
+		}
+		else {
+			dZ[index] = 0;
+		}
+		//Adding it to quickly see if I can set output of node agg 0 for test nodes
+		/*
+		if(index < num_test_nodes) {
+			dZ[index] = 0;
+		}*/
+	}
+	/*
+	if((row > 2700)) {
+		printf("ReLU x = %d, y = %d, dZ = %f, dA = %f\n", row, i, dZ[i + dA_y_dim * row], dA[i + dA_y_dim * row]); 
+	}*/
+}
 __global__ void linearLayerForward( float* W, float* A, float* Z, float* b,
                                                                            int W_x_dim, int W_y_dim,
                                                                            int A_x_dim, int A_y_dim){
@@ -170,10 +204,11 @@ void LinearLayer::runGEMM(Matrix& A, Matrix& B, Matrix& C, bool transposeA, bool
 	cublasDestroy(handle);
 }
 
-LinearLayer::LinearLayer(std::string name, Shape W_shape):
+LinearLayer::LinearLayer(std::string name,int layer_num, Shape W_shape):
     W(W_shape),b(W_shape.y,1)
 {
     this->name = name;
+    this->layer_num = layer_num;
 //    std::cout << "updated layer name\n";
     b.allocateCudaMemory();
 //    std::cout << "b allocated\n";
@@ -236,6 +271,13 @@ Matrix& LinearLayer::forward(Matrix& A, bool training, bool freeMatrix){
     Shape Z_shape(A.shape.x,W.shape.y);
     Z.allocateCuda(Z_shape);
     computeAndStoreLayerOutput(A);
+    if(layer_num != 2){
+	stored_Z.allocateCuda(Z.shape);
+	dim3 block_size(256);
+	dim3 num_of_blocks((Z.shape.y * Z.shape.x + block_size.x - 1) / block_size.x);
+	ReluActivationForward<<<num_of_blocks, block_size>>>(Z.data_device, Z.data_device,stored_Z.data_device, Z.shape.x, Z.shape.y);
+        
+    }
 //    std::cout << "Linear Layer forward\n";
     NNException::throwIfDeviceErrorOccurred("Cannot perform Linear Layer forward propagation");
     
@@ -283,6 +325,14 @@ void LinearLayer::computeAndStoreLayerOutput(Matrix& A) {
 
 Matrix& LinearLayer::backprop(Matrix& dZ, float learning_rate, bool freeMatrix) {
       //  std::cout << "Linear layer backword\n";
+        if(layer_num != 2){
+         	dim3 block_size(256);
+         	dim3 num_of_blocks((stored_Z.shape.y * stored_Z.shape.x + block_size.x - 1) / block_size.x);
+         	ReluActivationBackprop<<<num_of_blocks, block_size>>>(stored_Z.data_device, dZ.data_device,dZ.data_device, stored_Z.shape.x, stored_Z.shape.y);
+                NNException::throwIfDeviceErrorOccurred("Cannot perform ReLU back propagation");
+
+        } 
+
 	dA.allocateCuda(A.shape);
 	dW.allocateCuda(W.shape); //A'.dZ
 
@@ -312,6 +362,7 @@ Matrix& LinearLayer::backprop(Matrix& dZ, float learning_rate, bool freeMatrix) 
 
         //std::cout << " Linear backward shape.x:" << dA.shape.x << "\n";
         //std::cout << " Linear backward shape.y:" << dA.shape.y << "\n";
+        stored_Z.freeMem();
         dZ.freeMem();
 	dW.freeMem();
         if(A.device_allocated == true){

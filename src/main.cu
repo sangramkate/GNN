@@ -194,10 +194,10 @@ int main(int argc, char **argv) {
         std::cout << "Instance of Neural Network\n";
 	nn.addLayer(new NodeAggregator("nodeagg1", d_edge_data, d_row_start, d_edge_dst, nnodes, 2*nnz+nnodes));
         std::cout << "Added Nodeaggregator 1 layer\n";
-	nn.addLayer(new LinearLayer("linear1", Shape(nfeatures, hidden_size)));
+	nn.addLayer(new LinearLayer("linear1",1, Shape(feature_size, hidden_size)));
         std::cout << "Added Linear layer 1\n";
-	nn.addLayer(new ReLUActivation("relu1"));
-        std::cout << "Added relu layer 1\n";
+	//nn.addLayer(new ReLUActivation("relu1"));
+        //std::cout << "Added relu layer 1\n";
         //-----------------------------------------------
        // nn.addLayer(new NodeAggregator("nodeagg2", d_edge_data, d_row_start, d_edge_dst, 2708, nnz));
        // std::cout << "Added Nodeaggregator layer 2\n";
@@ -208,7 +208,7 @@ int main(int argc, char **argv) {
         //-----------------------------------------------
         nn.addLayer(new NodeAggregator("nodeagg3", d_edge_data, d_row_start, d_edge_dst, nnodes, 2*nnz+nnodes));
         std::cout << "Added Nodeaggregator layer 3\n";
-	nn.addLayer(new LinearLayer("linear3", Shape(hidden_size,nlabels)));
+	nn.addLayer(new LinearLayer("linear3",2, Shape(hidden_size,label_size)));
         std::cout << "Added Linear layer 3\n";
 //	nn.addLayer(new ReLUActivation("relu3"));
 //        std::cout << "Added Relu layer 3\n"; 
