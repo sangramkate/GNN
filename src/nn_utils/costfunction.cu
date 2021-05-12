@@ -26,7 +26,7 @@ __global__ void binaryCrossEntropyCost(float* predictions, float* target, int si
 __global__ void dBinaryCrossEntropyCost(float* predictions, float* target, float* dY, int size,int prediction_y, int* node_array_device, int num_test_nodes) {
 
 	int index = blockIdx.x * blockDim.x + threadIdx.x;
-
+ 
     int i = index%prediction_y;
     if (index < num_test_nodes*prediction_y) {
         //for (int i = 0; i < prediction_y; i++) {

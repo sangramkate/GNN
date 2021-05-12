@@ -164,7 +164,7 @@ int main() {
         free(label);
         free(h_B);
 	std::cout << "Dataset captured!\n";
-        NeuralNetwork nn(0.01);
+        NeuralNetwork nn(0.005);
         //-----------------------------------------------
         std::cout << "Instance of Neural Network\n";
 	nn.addLayer(new NodeAggregator("nodeagg1", d_edge_data, d_row_start, d_edge_dst, 2708, 2*nnz+2708));
@@ -261,7 +261,7 @@ float computeAccuracy(const Matrix& predictions, const Matrix& targets, int *nod
                 max_prediction = predictions[node_array[i] * predictions.shape.y + j];
             }
         }
-	//printf("max class = %d, max pred = %f\n", max_class, max_prediction);
+//	printf("max class = %d, max pred = %f\n", max_class, max_prediction);
 
         if (targets[node_array[i] * predictions.shape.y + max_class] == 1) {
             correct_predictions++;
