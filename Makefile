@@ -56,7 +56,8 @@ INC_DIR2 = include/Galois/include
 EXE = run_test
 
 # Object files:
-OBJS = $(OBJ_DIR)/main.o $(OBJ_DIR)/activation.o $(OBJ_DIR)/linear_layer.o $(OBJ_DIR)/softmax.o $(OBJ_DIR)/data.o $(OBJ_DIR)/nodeaggregator.o $(OBJ_DIR)/costfunction.o $(OBJ_DIR)/shape.o $(OBJ_DIR)/matrix.o $(OBJ_DIR)/NeuralNetwork.o
+#OBJS = $(OBJ_DIR)/main.o $(OBJ_DIR)/activation.o $(OBJ_DIR)/linear_layer.o $(OBJ_DIR)/softmax.o $(OBJ_DIR)/data.o $(OBJ_DIR)/nodeaggregator.o $(OBJ_DIR)/costfunction.o $(OBJ_DIR)/shape.o $(OBJ_DIR)/matrix.o $(OBJ_DIR)/NeuralNetwork.o
+OBJS = $(OBJ_DIR)/main.o $(OBJ_DIR)/linear_layer.o $(OBJ_DIR)/softmax.o $(OBJ_DIR)/data.o $(OBJ_DIR)/nodeaggregator.o $(OBJ_DIR)/costfunction.o $(OBJ_DIR)/shape.o $(OBJ_DIR)/matrix.o $(OBJ_DIR)/NeuralNetwork.o
 
 .SUFFIXES: .cu .o
 ##########################################################
@@ -84,7 +85,7 @@ clean:
 	mkdir bin
 
 makeobj:
-	$(NVCC) $(NVCC_FLAGS) -std=c++11  -I $(INC_DIR) -c src/Layers/activation.cu -o $(OBJ_DIR)/activation.o 
+	#$(NVCC) $(NVCC_FLAGS) -std=c++11  -I $(INC_DIR) -c src/Layers/activation.cu -o $(OBJ_DIR)/activation.o 
 	$(NVCC) $(NVCC_FLAGS) -std=c++11  -I $(INC_DIR) -c src/Layers/linear_layer.cu -o $(OBJ_DIR)/linear_layer.o 
 	$(NVCC) $(NVCC_FLAGS) -std=c++11  -I $(INC_DIR) -c src/Layers/softmax.cu -o $(OBJ_DIR)/softmax.o 
 	$(NVCC) $(NVCC_FLAGS) -std=c++11  -I $(INC_DIR) -c src/data.cu -o $(OBJ_DIR)/data.o 

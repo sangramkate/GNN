@@ -5,6 +5,20 @@
 #include "nodeaggregator.hh"
 #include "csr_graph.cu"
 #include "csr_graph.h"
+#include "nn_exception.hh"
+
+__global__ void print_kernel_agg(float *A, int size, std::string str) {
+	for(int i=1433; i<1433+size; i++) {
+		if(A[i] != 0.0) {
+		    printf("The value of %s[%d, %d] = %f\n", str, 1, i-1433*1, A[i]);
+		}
+	}
+	for(int i=1433*344; i<344*1433+size; i++) {
+		if(A[i] != 0.0) {
+		    printf("The value of %s[%d, %d] = %f\n", str, 344, i-1433*344, A[i]);
+		}
+	}
+}
 
 
 __global__ void print_kernel_agg(float* A, int size, std::string str) {
@@ -62,9 +76,7 @@ Matrix& NodeAggregator::forward(Matrix& A,bool training,bool freeMatrix){
 	//std::cout << "this.A" << this->A.data_device << "\n";
 	Z.allocateCuda(A.shape);
 	//Z = A;
-	//SpMM(nnz_data, row, col, A.data_device, Z.data_device, A.shape.y, nodes, nnz);
-	//    std::cout << " NodeAgg forward shape.x:" << Z.shape.x << "\n";
-	//    std::cout << " NodeAgg forward shape.y:" << Z.shape.y << "\n";
+    /*
     dim3 block_size(256);
     dim3 num_of_blocks((A.shape.x*A.shape.y + block_size.x - 1) / block_size.x);
     //print_kernel_agg<<<1,1>>>(A.data_device, 20, "A - agg in");
@@ -73,7 +85,16 @@ Matrix& NodeAggregator::forward(Matrix& A,bool training,bool freeMatrix){
     cudaDeviceSynchronize();
 
     //print_kernel_agg<<<1,1>>>(Z.data_device, 20, "Z - agg out");
+    */
+	//print_kernel_agg<<<1,1>>>(A.data_device,50, "agg - in - agg layer");
 
+	SpMM(nnz_data, row, col, A.data_device, Z.data_device, A.shape.y, nodes, nnz);
+
+	//print_kernel_agg<<<1,1>>>(Z.data_device, 50, "agg - out - agg layer");
+
+	    //std::cout << " NodeAgg forward shape.x:" << Z.shape.x << "\n";
+	//    std::cout << " NodeAgg forward shape.y:" << Z.shape.y << "\n";
+        NNException::throwIfDeviceErrorOccurred("Error found in NN AGG forward");
 	if(freeMatrix)
 	    A.freeMem();
 	//std::cout<<"Nodeagg ptr:" << Z.data_device << "\n";
@@ -88,13 +109,16 @@ Matrix& NodeAggregator::backprop(Matrix& dZ, float learning_rate, bool freeMatri
 	//std::cout<<"Nodeagg backward\n";
 	//std::cout<<"dZ.Shape.x:" << dZ.shape.x << "\n";
 	//std::cout<<"dZ.Shape.x:" << dZ.shape.y << "\n";
-    dim3 block_size(256);
+    /*dim3 block_size(256);
     dim3 num_of_blocks((dZ.shape.x*dZ.shape.y + block_size.x - 1) / block_size.x);
     agg<<<num_of_blocks,block_size>>>(nnz_data, row, col, dZ.data_device, dA.data_device, dZ.shape.y, nodes, nnz);
-	//SpMM(nnz_data, row, col, dZ.data_device, dA.data_device, dZ.shape.y, nodes, nnz);
+    */
+	SpMM(nnz_data, row, col, dZ.data_device, dA.data_device, dZ.shape.y, nodes, nnz);
 	//    std::cout << " NodeAgg backward shape.x:" << dA.shape.x << "\n";
 	 //   std::cout << " NodeAgg backward shape.y:" << dA.shape.y << "\n";
+        NNException::throwIfDeviceErrorOccurred("Error found in NN Agg backward 1");
 	dZ.freeMem();
+        NNException::throwIfDeviceErrorOccurred("Error found in NN Agg backward 2");
 	return dA;
 }
 

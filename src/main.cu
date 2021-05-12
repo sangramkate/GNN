@@ -164,15 +164,15 @@ int main() {
         free(label);
         free(h_B);
 	std::cout << "Dataset captured!\n";
-        NeuralNetwork nn(0.005);
+        NeuralNetwork nn(0.001);
         //-----------------------------------------------
         std::cout << "Instance of Neural Network\n";
 	nn.addLayer(new NodeAggregator("nodeagg1", d_edge_data, d_row_start, d_edge_dst, 2708, 2*nnz+2708));
         std::cout << "Added Nodeaggregator 1 layer\n";
-	nn.addLayer(new LinearLayer("linear1", Shape(feature_size, hidden_size)));
+	nn.addLayer(new LinearLayer("linear1",1, Shape(feature_size, hidden_size)));
         std::cout << "Added Linear layer 1\n";
-	nn.addLayer(new ReLUActivation("relu1"));
-        std::cout << "Added relu layer 1\n";
+	//nn.addLayer(new ReLUActivation("relu1"));
+        //std::cout << "Added relu layer 1\n";
         //-----------------------------------------------
        // nn.addLayer(new NodeAggregator("nodeagg2", d_edge_data, d_row_start, d_edge_dst, 2708, nnz));
        // std::cout << "Added Nodeaggregator layer 2\n";
@@ -183,7 +183,7 @@ int main() {
         //-----------------------------------------------
         nn.addLayer(new NodeAggregator("nodeagg3", d_edge_data, d_row_start, d_edge_dst, 2708, 2*nnz+2708));
         std::cout << "Added Nodeaggregator layer 3\n";
-	nn.addLayer(new LinearLayer("linear3", Shape(hidden_size,label_size)));
+	nn.addLayer(new LinearLayer("linear3",2, Shape(hidden_size,label_size)));
         std::cout << "Added Linear layer 3\n";
 //	nn.addLayer(new ReLUActivation("relu3"));
 //        std::cout << "Added Relu layer 3\n"; 
@@ -213,9 +213,9 @@ int main() {
 			float accuracy = 0.0f;
 			Y_test = nn.forward(dataset.input_features, false);
 			Y_test.allocateHostMemory();
-			std::cout << "Y_test.host allocated:" << Y_test.host_allocated << "\n";
+			//std::cout << "Y_test.host allocated:" << Y_test.host_allocated << "\n";
 			Y_test.copyDeviceToHost();
-			std::cout << "Y_test copied to host "<< "\n";
+			//std::cout << "Y_test copied to host "<< "\n";
 			accuracy = accuracy + computeAccuracy(Y_test,dataset.input_labels, dataset.node_array, num_test_nodes);
 			Y_test.freeMem();
 			std::cout << "Accuracy: " << accuracy << std::endl;
