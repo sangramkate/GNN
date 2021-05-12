@@ -10,10 +10,10 @@ Data::Data(int num_nodes, size_t batch_size,int feature_size, int label_size, in
         num_training_batches = (int) (number_of_batches * 0.4);
         num_test_batches = number_of_batches- num_training_batches;
         std::cout << "number of nodes :" << num_nodes << "\n" ;
-        std::cout << "number of batches :" << number_of_batches << "\n" ;
-        std::cout << "number of training batches :" << num_training_batches << "\n" ;
-        std::cout << "number of test batches :" << num_test_batches << "\n";
-        std::cout << "batch_size :" << batch_size << "\n" ;
+//        std::cout << "number of batches :" << number_of_batches << "\n" ;
+//        std::cout << "number of training batches :" << num_training_batches << "\n" ;
+//        std::cout << "number of test batches :" << num_test_batches << "\n";
+//        std::cout << "batch_size :" << batch_size << "\n" ;
         std::cout << "feature_size :" << feature_size << "\n" ;
         std::cout << "label_size :" << label_size << "\n" ;
         
@@ -29,13 +29,13 @@ Data::Data(int num_nodes, size_t batch_size,int feature_size, int label_size, in
 	
         Shape train_input_shape(batch_size,feature_size);
         train_input_features.allocateMemoryIfNotAllocated(train_input_shape);
-        std::cout << "input_features.x:" << input_features.shape.x << "\n";
-        std::cout << "input_features.y:" << input_features.shape.y << "\n";
+//        std::cout << "input_features.x:" << input_features.shape.x << "\n";
+//        std::cout << "input_features.y:" << input_features.shape.y << "\n";
 
         Shape train_input_label_shape(batch_size,label_size);
         train_input_labels.allocateMemoryIfNotAllocated(train_input_label_shape);
-        std::cout << "input_labels.x:" << input_labels.shape.x << "\n";
-        std::cout << "input_labels.y:" << input_labels.shape.y << "\n";
+//        std::cout << "input_labels.x:" << input_labels.shape.x << "\n";
+//        std::cout << "input_labels.y:" << input_labels.shape.y << "\n";
 
         //Randomize an array consisting of all the nodes
 

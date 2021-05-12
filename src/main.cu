@@ -4,6 +4,9 @@
 #include <string>
 #include <stdlib.h>
 #include <sstream>
+#include <ctime>
+
+
 
 #include "NeuralNetwork.hh"
 #include "linear_layer.hh"
@@ -194,7 +197,7 @@ int main(int argc, char **argv) {
         std::cout << "Instance of Neural Network\n";
 	nn.addLayer(new NodeAggregator("nodeagg1", d_edge_data, d_row_start, d_edge_dst, nnodes, 2*nnz+nnodes));
         std::cout << "Added Nodeaggregator 1 layer\n";
-	nn.addLayer(new LinearLayer("linear1",1, Shape(feature_size, hidden_size)));
+	nn.addLayer(new LinearLayer("linear1",1, Shape(nfeatures, hidden_size)));
         std::cout << "Added Linear layer 1\n";
 	//nn.addLayer(new ReLUActivation("relu1"));
         //std::cout << "Added relu layer 1\n";
@@ -208,7 +211,7 @@ int main(int argc, char **argv) {
         //-----------------------------------------------
         nn.addLayer(new NodeAggregator("nodeagg3", d_edge_data, d_row_start, d_edge_dst, nnodes, 2*nnz+nnodes));
         std::cout << "Added Nodeaggregator layer 3\n";
-	nn.addLayer(new LinearLayer("linear3",2, Shape(hidden_size,label_size)));
+	nn.addLayer(new LinearLayer("linear3",2, Shape(hidden_size,nlabels)));
         std::cout << "Added Linear layer 3\n";
 //	nn.addLayer(new ReLUActivation("relu3"));
 //        std::cout << "Added Relu layer 3\n"; 
@@ -220,21 +223,27 @@ int main(int argc, char **argv) {
 	// network training
 	Matrix Y;
 	Matrix Y_test;
+
+	bool print_accuracy = false;
+	bool print_cost = false;
+
+	
+	double TrainStartTime = std::clock(); //CycleTimer::currentSeconds();
 	for (int epoch = 0; epoch < 200; epoch++) {
 		float cost = 0.0;
 
 		Y = nn.forward(dataset.input_features, true);
 		nn.backprop(Y,dataset.input_labels,dataset.node_array_device,num_test_nodes);
 
-		cost += bce_cost.cost(Y,dataset.input_labels,dataset.node_array_device, num_test_nodes);
-		if (epoch % 10 == 0) {
+		if ((epoch % 10 == 0) && print_cost) {
+		       cost += bce_cost.cost(Y,dataset.input_labels,dataset.node_array_device, num_test_nodes);
 			std::cout 	<< "Epoch: " << epoch
 						<< ", Cost: " << cost
 						<< std::endl;
 		}
                 Y.freeMem();
 
-		if(epoch %10 == 0)  {
+		if((epoch %10 == 0) && print_accuracy)  {
 			float accuracy = 0.0f;
 			Y_test = nn.forward(dataset.input_features, false);
 			Y_test.allocateHostMemory();
@@ -247,23 +256,28 @@ int main(int argc, char **argv) {
 		}
 	}
 
+	
+	double TrainTime = (std::clock() - TrainStartTime) / (double) CLOCKS_PER_SEC ; //CycleTimer::currentSeconds()-TrainStartTime;
+	printf("Train time: %8.3f ms\n",1000.f * TrainTime);
+
+	cudaDeviceSynchronize();
+	double TestStartTime = std::clock();
         float accuracy = 0.0f;
         float final_accuracy = 0.0f;
-//	for (int batch = 0; batch < dataset.getNumOfTestBatches(); batch++) {
-		Y = nn.forward(dataset.input_features, false);
-                Y.allocateHostMemory();
-                std::cout << "Y.host allocated:" << Y.host_allocated << "\n";
-		Y.copyDeviceToHost();
-                std::cout << "Y copied to host "<< "\n";
-                accuracy = accuracy + computeAccuracy(Y,dataset.input_labels, dataset.node_array, num_test_nodes);
-//	}
+
+	Y = nn.forward(dataset.input_features, false);
+	Y.allocateHostMemory();
+	Y.copyDeviceToHost();
+	accuracy = accuracy + computeAccuracy(Y,dataset.input_labels, dataset.node_array, num_test_nodes);
+
         final_accuracy = accuracy;
+
+	double TestTime = (std::clock() - TestStartTime) / (double) CLOCKS_PER_SEC;
+	printf("Test time: %8.3f ms\n",1000.f * TestTime);
+	printf("Test time = %f %f", std::clock(), TestStartTime);
+
 	// compute accuracy
 
-	for(int i=0; i<Y.shape.x*Y.shape.y; i++) {
-		//printf("Final Y[%d] = %f\n", i, Y[i]);
-	}
-        
 	std::cout << "Accuracy: " << final_accuracy << std::endl;
         cudaFree(d_row_start);
         cudaFree(d_edge_dst);
