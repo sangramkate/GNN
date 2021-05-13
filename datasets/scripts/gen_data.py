@@ -53,6 +53,12 @@ for line in cora_cites:
 
 print(edge)
 
+with open("../cora/data_info.csv", "w") as info_file:
+    info_file.write(str((count)) + ",")
+    info_file.write(str((edge)) + ",")
+    info_file.write("1433,")
+    info_file.write(str((7)) + "\n")
+
 
 
 #print(data_hash)
@@ -109,5 +115,7 @@ for node_count in sorted(node_count_map.items(), key=lambda x: x[1]):
 
 feat_val.close()
 label_val.close()
+
+
 
 #print(data_hash)

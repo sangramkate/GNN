@@ -15,6 +15,12 @@ void NeuralNetwork::addLayer(NNLayer* layer) {
 	this->layers.push_back(layer);
 }
 
+void NeuralNetwork::free_matrix(){
+    for(auto layer: layers){
+        layer->free_matrix();
+    }
+}
+
 Matrix NeuralNetwork::forward(Matrix X, bool training) {
 	Matrix Z = X;
         int cnt = 0;
@@ -38,6 +44,7 @@ void NeuralNetwork::backprop(Matrix predictions, Matrix target, int* node_array_
 //	std::cout << "dY allocated device:" << dY.device_allocated << "\n";
         dY.allocateMemoryIfNotAllocated(predictions.shape);
 	Matrix& error = bce_cost.dCost(predictions, target, dY, node_array_device, num_test_nodes);
+        Matrix& err = error;
         //std::cout << "Error.x = " << error.shape.x << "\n";
         //std::cout << "Error.y = " << error.shape.y << "\n";
         bool freeMatrix;
@@ -49,12 +56,12 @@ void NeuralNetwork::backprop(Matrix predictions, Matrix target, int* node_array_
                    // freeMatrix = true;
                 else
                     freeMatrix = true;
-                if(cnt != 0)
-		    error = (*it)->backprop(error, learning_rate,freeMatrix);
+		error = (*it)->backprop(error, learning_rate,freeMatrix);
                 NNException::throwIfDeviceErrorOccurred("Error found in NN backprop");
 	        cnt--;
 	}
         error.freeMem();
+        err.freeMem();
         dY.freeMem();
 	cudaDeviceSynchronize();
 }

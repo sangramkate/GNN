@@ -137,3 +137,7 @@ void SoftMax::BackpropError(Matrix& dZ) {
     //SoftMaxBackprop<<<num_of_blocks, block_size >>> ( dZ.data_device,dA.data_device,Z.data_device,dZ.shape.x, dZ.shape.y);
     //copy_kernel<<<1,1>>>(dA.data_device, dZ.data_device, dZ.shape.x, dZ.shape.y);
 }
+
+void SoftMax::free_matrix(){
+
+}

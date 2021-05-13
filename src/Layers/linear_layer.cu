@@ -218,7 +218,7 @@ void LinearLayer::runGEMM(Matrix& A, Matrix& B, Matrix& C, bool transposeA, bool
 }
 
 LinearLayer::LinearLayer(std::string name,int layer_num, Shape W_shape):
-    W(W_shape),b(W_shape.y,1)
+    W(W_shape),b(W_shape.y,1),dW(W_shape)
 {
     this->name = name;
     this->layer_num = layer_num;
@@ -226,11 +226,16 @@ LinearLayer::LinearLayer(std::string name,int layer_num, Shape W_shape):
     b.allocateCudaMemory();
 //    std::cout << "b allocated\n";
     W.allocateMemory();
+    dW.allocateMemory();
 //    std::cout << "w allocated\n";
     initializeBiasWithZeros();
 //   std::cout << "bias initialized\n";
     initializeWeightsRandomly();
 //    std::cout << "weights initialized\n";
+}
+
+void LinearLayer::free_matrix(){
+  dW.freeMem();
 }
 
 LinearLayer::~LinearLayer()
@@ -347,7 +352,7 @@ Matrix& LinearLayer::backprop(Matrix& dZ, float learning_rate, bool freeMatrix) 
         } 
 
 	dA.allocateCuda(A.shape);
-	dW.allocateCuda(W.shape); //A'.dZ
+	//dW.allocateCuda(W.shape); //A'.dZ
 
       //  std::cout << "Linear Layer backward\n";
 	//print_kernel_lin<<<1,1>>>(dZ.data_device, dZ.shape.x*dZ.shape.y, "dZ - pre backprop ");
@@ -376,8 +381,8 @@ Matrix& LinearLayer::backprop(Matrix& dZ, float learning_rate, bool freeMatrix) 
         //std::cout << " Linear backward shape.x:" << dA.shape.x << "\n";
         //std::cout << " Linear backward shape.y:" << dA.shape.y << "\n";
         stored_Z.freeMem();
-        dZ.freeMem();
-	dW.freeMem();
+        //dZ.freeMem();
+	//dW.freeMem();
         if(A.device_allocated == true){
             if(freeMatrix){
                A.freeMem();
