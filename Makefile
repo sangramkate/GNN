@@ -89,11 +89,13 @@ makeobj:
 	$(NVCC) $(NVCC_FLAGS) -std=c++11  -I $(INC_DIR) -c src/Layers/linear_layer.cu -o $(OBJ_DIR)/linear_layer.o 
 	$(NVCC) $(NVCC_FLAGS) -std=c++11  -I $(INC_DIR) -c src/Layers/softmax.cu -o $(OBJ_DIR)/softmax.o 
 	$(NVCC) $(NVCC_FLAGS) -std=c++11  -I $(INC_DIR) -c src/data.cu -o $(OBJ_DIR)/data.o 
-	$(NVCC) $(NVCC_FLAGS) -std=c++11  -I $(INC_DIR) -I $(INC_DIR_CUB) -I $(INC_DIR_MGPU) -I $(INC_DIR2)  -c src/Layers/nodeaggregator.cu --expt-extended-lambda -o $(OBJ_DIR)/nodeaggregator.o 
+#	$(NVCC) $(NVCC_FLAGS) -std=c++11  -I $(INC_DIR) -I $(INC_DIR_CUB) -I $(INC_DIR_MGPU) -I $(INC_DIR2)  -c src/Layers/nodeaggregator.cu --expt-extended-lambda -o $(OBJ_DIR)/nodeaggregator.o 
+	$(NVCC) $(NVCC_FLAGS) -std=c++11  -I $(INC_DIR) -c src/Layers/nodeaggregator.cu --expt-extended-lambda -o $(OBJ_DIR)/nodeaggregator.o 
 	$(NVCC) $(NVCC_FLAGS) -std=c++11  -I $(INC_DIR) -c src/nn_utils/costfunction.cu -o $(OBJ_DIR)/costfunction.o 
 	$(NVCC) $(NVCC_FLAGS) -std=c++11  -I $(INC_DIR) -c src/nn_utils/matrix.cu -o $(OBJ_DIR)/matrix.o 
 	$(NVCC) $(NVCC_FLAGS) -std=c++11  -I $(INC_DIR) -c src/nn_utils/shape.cu -o $(OBJ_DIR)/shape.o 
 	$(NVCC) $(NVCC_FLAGS) -std=c++11  -I $(INC_DIR) -c src/NeuralNetwork.cu -o $(OBJ_DIR)/NeuralNetwork.o 
-	$(NVCC) $(NVCC_FLAGS) -std=c++11  -I $(INC_DIR) -I $(INC_DIR2) -c src/main.cu -o $(OBJ_DIR)/main.o 
+#	$(NVCC) $(NVCC_FLAGS) -std=c++11  -I $(INC_DIR) -I $(INC_DIR2) -c src/main.cu -o $(OBJ_DIR)/main.o 
+	$(NVCC) $(NVCC_FLAGS) -std=c++11  -I $(INC_DIR) -c src/main.cu -o $(OBJ_DIR)/main.o 
 
 all: clean makeobj ${EXE}

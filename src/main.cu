@@ -12,7 +12,8 @@
 #include "nodeaggregator.hh"
 #include "nn_exception.hh"
 #include "costfunction.hh"
-#include "csr_graph.h"
+//#include "csr_graph.h"
+#include "Layers/csr_graph.cu"
 #include "data.hh" 
 
 
@@ -43,13 +44,13 @@ int main() {
 	CostFunction bce_cost;
 
 //Code for extracting data from dataset files starts here
-        CSRGraph graph;
-        char gr_file[]="cora.gr";
-        char binFile[]="cora-feat.bin";
-        int nnodes = 0,nedges = 0;
+      //  CSRGraph graph;
+      //  char gr_file[]="cora.gr";
+      //  char binFile[]="cora-feat.bin";
+        int nnodes = 2708,nedges = 5429;
         int feature_size = 1433;
         int label_size = 7;
-        graph.read(gr_file,&nnodes,&nedges);
+      //  graph.read(gr_file,&nnodes,&nedges);
         int* d_row_start;
         int* d_edge_dst;
         float* d_edge_data;
@@ -167,8 +168,8 @@ int main() {
         NeuralNetwork nn(0.001);
         //-----------------------------------------------
         std::cout << "Instance of Neural Network\n";
-	nn.addLayer(new NodeAggregator("nodeagg1", d_edge_data, d_row_start, d_edge_dst, 2708, 2*nnz+2708));
-        std::cout << "Added Nodeaggregator 1 layer\n";
+	//nn.addLayer(new NodeAggregator("nodeagg1", d_edge_data, d_row_start, d_edge_dst, 2708, 2*nnz+2708));
+        //std::cout << "Added Nodeaggregator 1 layer\n";
 	nn.addLayer(new LinearLayer("linear1",1, Shape(feature_size, hidden_size)));
         std::cout << "Added Linear layer 1\n";
 	//nn.addLayer(new ReLUActivation("relu1"));
@@ -195,12 +196,21 @@ int main() {
 	// network training
 	Matrix Y;
 	Matrix Y_test;
+ 
+        Matrix input;
+        Shape input_shape(dataset.input_features.shape.x, dataset.input_features.shape.y);
+        input.allocateMemoryIfNotAllocated(input_shape);
+        cudaDeviceSynchronize();
+	SpMM(d_edge_data, d_row_start, d_edge_dst, dataset.input_features.data_device, input.data_device, input.shape.y, nnodes, nnz);
+        NNException::throwIfDeviceErrorOccurred("Cannot perform SpMM in main.cu");
+ 
+        int flag = 0 ;
 	for (int epoch = 0; epoch < 200; epoch++) {
 		float cost = 0.0;
-
-		Y = nn.forward(dataset.input_features, true);
+        
+	//	Y = nn.forward(dataset.input_features, true,flag);
+		Y = nn.forward(input, true);
 		nn.backprop(Y,dataset.input_labels,dataset.node_array_device,num_test_nodes);
-
 		cost += bce_cost.cost(Y,dataset.input_labels,dataset.node_array_device, num_test_nodes);
 		if (epoch % 10 == 0) {
 			std::cout 	<< "Epoch: " << epoch
@@ -211,7 +221,7 @@ int main() {
 
 		if(epoch %10 == 0)  {
 			float accuracy = 0.0f;
-			Y_test = nn.forward(dataset.input_features, false);
+			Y_test = nn.forward(input,false);
 			Y_test.allocateHostMemory();
 			//std::cout << "Y_test.host allocated:" << Y_test.host_allocated << "\n";
 			Y_test.copyDeviceToHost();
@@ -225,7 +235,7 @@ int main() {
         float accuracy = 0.0f;
         float final_accuracy = 0.0f;
 //	for (int batch = 0; batch < dataset.getNumOfTestBatches(); batch++) {
-		Y = nn.forward(dataset.input_features, false);
+		Y = nn.forward(input, false);
                 Y.allocateHostMemory();
                 std::cout << "Y.host allocated:" << Y.host_allocated << "\n";
 		Y.copyDeviceToHost();

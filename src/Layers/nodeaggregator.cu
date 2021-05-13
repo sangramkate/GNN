@@ -3,9 +3,10 @@
 #include <iostream>
 #include <random>
 #include "nodeaggregator.hh"
-#include "csr_graph.cu"
-#include "csr_graph.h"
+//#include "csr_graph.cu"
+//#include "csr_graph.h"
 #include "nn_exception.hh"
+#include <cusparse_v2.h>
 
 __global__ void print_kernel_agg(float *A, int size, std::string str) {
 	for(int i=1433; i<1433+size; i++) {
@@ -67,6 +68,30 @@ void  agg(float* nnz_data, int* row, int* col, float* d_B, float* d_C, int FV_si
     d_C[index] = val;
 }
 
+ void NodeAggregator::node_SpMM(float* nnz_data, int* row, int* col, float* d_B, float* d_C, int FV_size, int m, int nnz) {
+	int n = FV_size;
+	cusparseHandle_t cusparse1 = NULL;
+	cusparseMatDescr_t      descrA  ;
+	cusparseCreateMatDescr(&descrA);
+	cusparseSetMatType(descrA, CUSPARSE_MATRIX_TYPE_GENERAL);
+	cusparseSetMatIndexBase(descrA, CUSPARSE_INDEX_BASE_ZERO);
+
+	const float alp = 1;
+	const float bet = 0;
+	const float* alpha = &alp;
+	const float* beta = &bet;
+
+	cusparseStatus_t result;
+	cusparseCreate(&cusparse1);
+	//A : mxn, B: mxm, C: mxn
+	result = cusparseSgemmi(cusparse1, n, m , m, nnz, alpha, d_B, n, nnz_data,row, col, beta, d_C, n);
+
+	if(result != CUSPARSE_STATUS_SUCCESS) {
+	    printf("Cusparse failed\n");
+	}
+
+	  return;
+}
 
 Matrix& NodeAggregator::forward(Matrix& A,bool training,bool freeMatrix){
 	//std::cout<<"Nodeagg forward\n";
@@ -87,8 +112,7 @@ Matrix& NodeAggregator::forward(Matrix& A,bool training,bool freeMatrix){
     //print_kernel_agg<<<1,1>>>(Z.data_device, 20, "Z - agg out");
     */
 	//print_kernel_agg<<<1,1>>>(A.data_device,50, "agg - in - agg layer");
-
-	SpMM(nnz_data, row, col, A.data_device, Z.data_device, A.shape.y, nodes, nnz);
+	node_SpMM(nnz_data, row, col, A.data_device, Z.data_device, A.shape.y, nodes, nnz);
 
 	//print_kernel_agg<<<1,1>>>(Z.data_device, 50, "agg - out - agg layer");
 
@@ -104,7 +128,7 @@ Matrix& NodeAggregator::forward(Matrix& A,bool training,bool freeMatrix){
 Matrix& NodeAggregator::backprop(Matrix& dZ, float learning_rate, bool freeMatrix) {
 	this->dZ = dZ;
 	//std::cout<<"Nodeagg backward\n";
-	dA.allocateCuda(dZ.shape);
+//	dA.allocateCuda(dZ.shape);
 	//dA = dZ;
 	//std::cout<<"Nodeagg backward\n";
 	//std::cout<<"dZ.Shape.x:" << dZ.shape.x << "\n";
@@ -113,13 +137,13 @@ Matrix& NodeAggregator::backprop(Matrix& dZ, float learning_rate, bool freeMatri
     dim3 num_of_blocks((dZ.shape.x*dZ.shape.y + block_size.x - 1) / block_size.x);
     agg<<<num_of_blocks,block_size>>>(nnz_data, row, col, dZ.data_device, dA.data_device, dZ.shape.y, nodes, nnz);
     */
-	SpMM(nnz_data, row, col, dZ.data_device, dA.data_device, dZ.shape.y, nodes, nnz);
+//	SpMM(nnz_data, row, col, dZ.data_device, dA.data_device, dZ.shape.y, nodes, nnz);
 	//    std::cout << " NodeAgg backward shape.x:" << dA.shape.x << "\n";
 	 //   std::cout << " NodeAgg backward shape.y:" << dA.shape.y << "\n";
-        NNException::throwIfDeviceErrorOccurred("Error found in NN Agg backward 1");
-	dZ.freeMem();
-        NNException::throwIfDeviceErrorOccurred("Error found in NN Agg backward 2");
-	return dA;
+//        NNException::throwIfDeviceErrorOccurred("Error found in NN Agg backward 1");
+//	dZ.freeMem();
+//        NNException::throwIfDeviceErrorOccurred("Error found in NN Agg backward 2");
+	return dZ;
 }
 
 //nn.addLayer(new NodeAggregator("nodeagg1", d_edge_data, d_row_start, d_edge_dst, 2708, nnz));

@@ -134,35 +134,48 @@ __global__ void reduce_array(volatile scalar_t* sdata, unsigned int tid, unsigne
 }
 */
 
-
 __global__ void linearLayerUpdateBias(  float* dZ, float* b,
 										int dZ_x_dim, int dZ_y_dim,
 										int b_x_dim,
 										float learning_rate) {
 	int index = blockIdx.x * blockDim.x + threadIdx.x;
-	int tid = threadIdx.x;
-
-	//Setting to a high value
-	extern __shared__ float buffer[];
-	
-	//Assuming #of output features > # of threads
-	if(tid < dZ_y_dim) {
-		buffer[tid] = 0;
-	}
-	__syncthreads();
 
 	if (index < dZ_x_dim * dZ_y_dim) {
-		int dZ_x = index / dZ_y_dim;
-		int dZ_y = index % dZ_y_dim;
-		atomicAdd(&buffer[dZ_y], dZ[dZ_x * dZ_y_dim + dZ_y]);
-	}
-
-	__syncthreads();
-
-	if(tid < dZ_y_dim) {
-		atomicAdd(&b[tid], -learning_rate*buffer[tid]/dZ_y_dim);
+		int dZ_x = index % dZ_y_dim;
+		int dZ_y = index / dZ_y_dim;
+		atomicAdd(&b[dZ_y], - learning_rate * (dZ[dZ_y * dZ_y_dim + dZ_x] / dZ_y_dim));
 	}
 }
+
+
+//__global__ void linearLayerUpdateBias(  float* dZ, float* b,
+//										int dZ_x_dim, int dZ_y_dim,
+//										int b_x_dim,
+//										float learning_rate) {
+//	int index = blockIdx.x * blockDim.x + threadIdx.x;
+//	int tid = threadIdx.x;
+//
+//	//Setting to a high value
+//	extern __shared__ float buffer[];
+//	
+//	//Assuming #of output features > # of threads
+//	if(tid < dZ_y_dim) {
+//		buffer[tid] = 0;
+//	}
+//	__syncthreads();
+//
+//	if (index < dZ_x_dim * dZ_y_dim) {
+//		int dZ_x = index / dZ_y_dim;
+//		int dZ_y = index % dZ_y_dim;
+//		atomicAdd(&buffer[dZ_y], dZ[dZ_x * dZ_y_dim + dZ_y]);
+//	}
+//
+//	__syncthreads();
+//
+//	if(tid < dZ_y_dim) {
+//		atomicAdd(&b[tid], -learning_rate*buffer[tid]/dZ_y_dim);
+//	}
+//}
 
 
 void LinearLayer::runGEMM(Matrix& A, Matrix& B, Matrix& C, bool transposeA, bool transposeB) {
@@ -366,7 +379,9 @@ Matrix& LinearLayer::backprop(Matrix& dZ, float learning_rate, bool freeMatrix) 
         dZ.freeMem();
 	dW.freeMem();
         if(A.device_allocated == true){
-            if(freeMatrix) A.freeMem();
+            if(freeMatrix){
+               A.freeMem();
+            }
         }
 	return dA;
 }
