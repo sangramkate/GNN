@@ -274,7 +274,7 @@ int main(int argc, char **argv) {
 
 	double TestTime = (std::clock() - TestStartTime) / (double) CLOCKS_PER_SEC;
 	printf("Test time: %8.3f ms\n",1000.f * TestTime);
-	printf("Test time = %f %f", std::clock(), TestStartTime);
+	printf("Test time = %f %f\n", std::clock(), TestStartTime);
 
 	// compute accuracy
 
