@@ -14,14 +14,33 @@ __global__ void SoftMaxForward( float* A, float* Z,int A_x_dim, int A_y_dim){
   
     float sum = 0.0f;
     if(row < Z_x_dim){
+
+	/*
+	float max = A[0 + Z_y_dim * row];
        for(int i=0; i< Z_y_dim; i=i+1){
-           float tmp = exp(A[i +  Z_y_dim * row]);
-           Z[i + Z_y_dim * row] = tmp;
+		if(A[i +  Z_y_dim * row] > max) {
+		     max = A[i +  Z_y_dim * row];
+		}	
+	}*/
+
+	
+       for(int i=0; i< Z_y_dim; i=i+1){
+           long double tmp = exp(A[i +  Z_y_dim * row]);
+           Z[i + Z_y_dim * row] = (float) tmp;
            sum += tmp;  
+	/*
+	   if(isinf(sum)) {
+		printf("Softmax inf = %f, %f, %lf\n", Z[i + Z_y_dim * row], A[i +  Z_y_dim * row], tmp);
+	   }*/
        }
+
        for(int i= 0; i < Z_y_dim; i=i+1){
            Z[i + Z_y_dim * row] /= sum;
+	   //if(isnan(Z[i + Z_y_dim * row])) {
+		//printf("Softmax = %f\n", A[i + Z_y_dim * row]);
+	   //}
        }
+
     }
 }
 
@@ -38,6 +57,16 @@ __global__ void SoftMaxBackprop( float* dZ, float*dA, float* A, int dZ_x_dim, in
             }
         }
 }
+
+//Writing this kernel because for cross-entropy, we will do backpropagation in the cost function itself
+__global__ void copy_kernel(float* dA, float* dZ, int dZ_x_size, int dZ_y_size) {
+	for(int i=0; i<dZ_x_size; i++) {
+		for(int j=0; j<dZ_y_size; j++) {
+			dA[i*dZ_y_size + j] = dZ[i*dZ_y_size + j];
+		}
+	}
+}
+
 
 //__global__ void SoftMaxBackprop( float* dZ, float*dA, float* A, int dZ_x_dim, int dZ_y_dim){
 //    int row = blockIdx.x * blockDim.x + threadIdx.x;
@@ -90,20 +119,25 @@ void SoftMax::LayerOutput(Matrix& A) {
     SoftMaxForward<<<num_of_blocks, block_size>>>( A.data_device,Z.data_device,A.shape.x, A.shape.y);
 }
 
-Matrix& SoftMax::backprop(Matrix& dZ, float learning_rate) {
+Matrix& SoftMax::backprop(Matrix& dZ, float learning_rate, bool freeMatrix) {
     //std::cout << "SoftMax backward\n";
-    dA.allocateCuda(A.shape);
+    //dA.allocateCuda(A.shape);
     //std::cout<<"softmax backward\n";
     //std::cout << " softmax backward shape.x:" << dZ.shape.x << "\n";
     //std::cout << " softmax backward shape.y:" << dZ.shape.y << "\n";
-    BackpropError(dZ);
-    NNException::throwIfDeviceErrorOccurred("Cannot perform back propagation.");
-    dZ.freeMem();
-    return dA;
+    //BackpropError(dZ);
+    //NNException::throwIfDeviceErrorOccurred("Cannot perform back propagation.");
+    //dZ.freeMem();
+    return dZ;
 }
 
 void SoftMax::BackpropError(Matrix& dZ) {
     int block_size(256);
     int num_of_blocks ((dZ.shape.x + block_size - 1) / block_size);
-    SoftMaxBackprop<<<num_of_blocks, block_size >>> ( dZ.data_device,dA.data_device,Z.data_device,dZ.shape.x, dZ.shape.y);
+    //SoftMaxBackprop<<<num_of_blocks, block_size >>> ( dZ.data_device,dA.data_device,Z.data_device,dZ.shape.x, dZ.shape.y);
+    //copy_kernel<<<1,1>>>(dA.data_device, dZ.data_device, dZ.shape.x, dZ.shape.y);
+}
+
+void SoftMax::free_matrix(){
+
 }

@@ -12,7 +12,9 @@ __global__ void ReluActivationForward(float* Z, float* A,float* Stored_Z, int Z_
 }
 
 __global__ void ReluActivationBackprop(float* Z, float* dA, float* dZ, int Z_x_dim, int Z_y_dim) {
-
+	
+	//int nnodes = 2708;
+	//int num_test_nodes = nnodes - (0.6*nnodes);
 	int index = blockIdx.x * blockDim.x + threadIdx.x;
 	if (index < Z_x_dim * Z_y_dim) {
 		if (Z[index] > 0) {
@@ -21,7 +23,16 @@ __global__ void ReluActivationBackprop(float* Z, float* dA, float* dZ, int Z_x_d
 		else {
 			dZ[index] = 0;
 		}
+		//Adding it to quickly see if I can set output of node agg 0 for test nodes
+		/*
+		if(index < num_test_nodes) {
+			dZ[index] = 0;
+		}*/
 	}
+	/*
+	if((row > 2700)) {
+		printf("ReLU x = %d, y = %d, dZ = %f, dA = %f\n", row, i, dZ[i + dA_y_dim * row], dA[i + dA_y_dim * row]); 
+	}*/
 }
 
 ReLUActivation::ReLUActivation(std::string name) {
@@ -49,7 +60,7 @@ Matrix& ReLUActivation::forward(Matrix& P, bool training, bool freeMatrix) {
 	return A;
 }
 
-Matrix& ReLUActivation::backprop(Matrix& dA, float learning_rate) {
+Matrix& ReLUActivation::backprop(Matrix& dA, float learning_rate,bool freeMatrix) {
         //std::cout << "Relu Layer backward\n";
 	dZ.allocateCuda(stored_Z.shape);
 	dim3 block_size(256);

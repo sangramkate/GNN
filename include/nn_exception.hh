@@ -20,7 +20,7 @@ public:
         cudaError_t error = cudaGetLastError();
         if(error != cudaSuccess){
             std::cout << "-------------------------------------------\n";
-            std::cerr << error << ":" << exception_msg << "\n";
+            std::cerr << cudaGetErrorString(error) << ":" << exception_msg << "\n";
             std::cout << "-------------------------------------------\n";
             throw NNException(exception_msg);
         }

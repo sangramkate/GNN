@@ -3,8 +3,8 @@
 import re
 import os
 
-cora_content = open("/home/08001/atomar/parallelism_project/datasets/cora/cora.content","r")
-cora_cites = open("/home/08001/atomar/parallelism_project/datasets/cora/cora.cites","r")
+cora_content = open("../cora/cora.content","r")
+cora_cites = open("../cora/cora.cites","r")
 
 label_name = ['Case_Based',
               'Genetic_Algorithms',
@@ -53,10 +53,17 @@ for line in cora_cites:
 
 print(edge)
 
+with open("../cora/data_info.csv", "w") as info_file:
+    info_file.write(str((count)) + ",")
+    info_file.write(str((edge)) + ",")
+    info_file.write("1433,")
+    info_file.write(str((7)) + "\n")
+
+
 
 #print(data_hash)
 #print(node_count_map)
-nnz_data = open("/home/08001/atomar/parallelism_project/datasets/cora/nnz_data.csv","w")
+nnz_data = open("../cora/nnz_data.csv","w")
 nnz_count = edge*2+count
 for i in range(0,nnz_count):
     nnz_data.write(str(1))
@@ -64,31 +71,35 @@ for i in range(0,nnz_count):
         nnz_data.write(",")
 nnz_data.close()
 
-row_start = open("/home/08001/atomar/parallelism_project/datasets/cora/row_start.csv","w")
-edge_dst = open("/home/08001/atomar/parallelism_project/datasets/cora/edge_dst.csv","w")
+row_start = open("../cora/row_start.csv","w")
+edge_dst = open("../cora/edge_dst.csv","w")
+edge_data = open("../cora/edge_data.csv", "w") #degree matrix inverse
 count = 0
 row_start.write(str(0))
 for node_count in sorted(node_count_map.items(), key=lambda x: x[1]):
     count = count + len(data_hash[node_count[0]]["edges"]) 
+    degree = 1.0/len(data_hash[node_count[0]]["edges"])
     row_start.write("," + str(count))
     #print(node_count[0] is None)
     data_hash[node_count[0]]["edges"].sort()
     #print(data_hash[node_count[0]]["edges"])
     for num in data_hash[node_count[0]]["edges"]:
         edge_dst.write(str(num) + ",")
+        edge_data.write(str(degree) + ",")
 
 edge_dst.close()
 row_start.close()
+edge_data.close()
 
-with open("/home/08001/atomar/parallelism_project/datasets/cora/edge_dst.csv", 'rb+') as filehandle:
+with open("../cora/edge_dst.csv", 'rb+') as filehandle:
     filehandle.seek(-1, os.SEEK_END)
     filehandle.truncate()
 
-feat_val = open("/home/08001/atomar/parallelism_project/datasets/cora/feature_val.csv","w")
-label_val = open("/home/08001/atomar/parallelism_project/datasets/cora/label_val.csv","w")
+feat_val = open("../cora/feature_val.csv","w")
+label_val = open("../cora/label_val.csv","w")
 for node_count in sorted(node_count_map.items(), key=lambda x: x[1]):
     feat_count = len(data_hash[node_count[0]]["features"])
-    print(feat_count);
+    #print(feat_count);
     for feat in range(0,feat_count):
         feat_val.write(str(data_hash[node_count[0]]["features"][feat]))
         if (feat != feat_count - 1):
@@ -104,5 +115,7 @@ for node_count in sorted(node_count_map.items(), key=lambda x: x[1]):
 
 feat_val.close()
 label_val.close()
+
+
 
 #print(data_hash)

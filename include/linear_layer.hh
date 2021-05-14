@@ -12,7 +12,8 @@ private:
     Matrix A;
     Matrix dA;
     Matrix dW;
-    
+    Matrix stored_Z;
+    int layer_num; 
     void initializeBiasWithZeros();
     void initializeWeightsRandomly();
    
@@ -21,13 +22,13 @@ private:
     void computeAndStoreLayerOutput(Matrix& A);
     void updateWeights(Matrix& dz, float learining_rate);
     void updateBias(Matrix& dZ, float learning_rate);
-    
 public:
-    LinearLayer(std::string name, Shape W_shape);
+    LinearLayer(std::string name, int layer_num, Shape W_shape);
     ~LinearLayer();
     
     Matrix& forward(Matrix& A, bool training, bool freeMatrix);
-    Matrix& backprop(Matrix& dZ, float learning_rate = 0.01);
+    Matrix& backprop(Matrix& dZ, float learning_rate, bool freeMatrix);
+    void free_matrix(); 
     
     int getXdim() const;
     int getYdim() const;

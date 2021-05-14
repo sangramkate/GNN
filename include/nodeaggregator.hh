@@ -14,12 +14,13 @@ private:
     int nnz;
     
 public:
-    NodeAggregator(std::string name, float* nnz_data, int* row, int*col, int nodes, int nnz);
+    NodeAggregator(std::string name, float* nnz_data, int* row, int*col, int nodes, int nnz, Shape dA_shape);
     ~NodeAggregator();
     
     Matrix& forward(Matrix& A, bool training, bool freeMatrix);
-    Matrix& backprop(Matrix& dZ, float learning_rate);
-   
+    Matrix& backprop(Matrix& dZ, float learning_rate, bool freeMatrix);
+    void free_matrix(); 
+    void node_SpMM(float* nnz_data, int* row, int* col, float* d_B, float* d_C, int FV_size, int m, int nnz); 
 //    int getXdim() const;
 //    int getYdim() const;
     
