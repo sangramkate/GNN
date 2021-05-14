@@ -28,7 +28,8 @@ int main(int argc, char **argv) {
 
 //	std::string dataset_name = "Pubmed-Diabetes";
 	std::string dataset_name = argv[1];
-
+        std::string var2 = argv[2];
+        int num_epochs = std::stoi(var2); 
 	std::fstream data_info;
 	data_info.open("datasets/" + dataset_name + "/data_info.csv", std::ios::in);	
         std::string line, word, temp;
@@ -239,7 +240,7 @@ int main(int argc, char **argv) {
 
 	
 	double TrainStartTime = std::clock(); //CycleTimer::currentSeconds();
-	for (int epoch = 0; epoch < 200; epoch++) {
+	for (int epoch = 0; epoch < num_epochs; epoch++) {
 		float cost = 0.0;
         
 	//	Y = nn.forward(dataset.input_features, true,flag);
